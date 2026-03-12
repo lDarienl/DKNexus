@@ -36,8 +36,9 @@ def cos(x):
     return term
 
 def tan(x):
-    """Tangente = seno / coseno. En pi/2 + k*pi (coseno 0) se devuelve 0."""
+    """Tangente = seno / coseno. Indefinida cuando cos(x) = 0."""
     c = cos(x)
-    if c == 0:
-        return 0
+    # Umbral para evitar problemas numéricos cerca de 0
+    if -1e-12 < c < 1e-12:
+        raise ValueError("Error de dominio: Tangente indefinida (división por cero en coseno).")
     return sin(x) / c

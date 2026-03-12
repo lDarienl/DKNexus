@@ -26,7 +26,13 @@ class CollectingErrorListener(ErrorListener):
         self.errors = []
 
     def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
-        self.errors.append(f"L{line}:{column} {msg}")
+        # Mensajes un poco más amigables para errores comunes
+        friendly = msg
+        if "missing ';'" in msg:
+            friendly = "Falta ';' al final de la instrucción."
+        elif "token recognition error at" in msg:
+            friendly = msg.replace("token recognition error at:", "Token inválido:")
+        self.errors.append(f"L{line}:{column} {friendly}")
 
 
 class EvalVisitor(grammarDKNVisitor):
@@ -55,49 +61,9 @@ class EvalVisitor(grammarDKNVisitor):
         return None
 
     def visitStatement(self, ctx):
-        if self._returned:
-            return None
-
-        # asignacion: VARIABLE '=' expr ';' (detectar antes que expr para no imprimir)
-        if ctx.VARIABLE() and ctx.getChildCount() >= 4 and ctx.getChild(1).getText() == '=':
-            name = ctx.VARIABLE().getText()
-            value = self.visit(self._expr0(ctx))
-            self.variables[name] = value
-            return None
-
-        # print(expr);
-        if ctx.getChildCount() >= 5 and ctx.getChild(0).getText() == 'print':
-            val = self.visit(self._expr0(ctx))
-            print(val)
-            return None
-
-        # return expr;
-        if ctx.getChildCount() >= 3 and ctx.getChild(0).getText() == 'return':
-            self.return_value = self.visit(self._expr0(ctx))
-            self._returned = True
-            return None
-
-        # expr ';' (imprimir expresión)
-        if ctx.expr():
-            val = self.visit(ctx.expr(0))
-            if val is not None:
-                print(val)
-        elif ctx.getChild(0).getText() == 'if':
-            cond = self.visit(ctx.expr(0))
-            if cond:
-                for st in ctx.statement():
-                    self.visit(st)
-        elif ctx.getChild(0).getText() == 'for':
-            self.visit(ctx.expr(0))  # init
-            while self.visit(ctx.expr(1)):
-                for st in ctx.statement():
-                    self.visit(st)
-                self.visit(ctx.expr(2))  # update
-        elif ctx.getChild(0).getText() == 'while':
-            while self.visit(ctx.expr(0)):
-                for st in ctx.statement():
-                    self.visit(st)
-        return None
+        # Con alternativas etiquetadas (#PrintExpr, #IfStmt, etc.) ANTLR llamará
+        # a los métodos específicos. Este método queda como fallback.
+        return self.visitChildren(ctx)
 
     # ---- Statement visitors (etiquetas actuales en grammarDKN.g4) ----
     def visitPrintExpr(self, ctx):
@@ -205,7 +171,9 @@ class EvalVisitor(grammarDKNVisitor):
 
     def visitVar(self, ctx):
         name = ctx.VARIABLE().getText()
-        return self.variables.get(name, 0)
+        if name not in self.variables:
+            raise DKNRuntimeError(f"Variable '{name}' no ha sido definida.")
+        return self.variables[name]
 
     def visitParens(self, ctx):
         return self.visit(ctx.expr())
@@ -217,7 +185,10 @@ class EvalVisitor(grammarDKNVisitor):
         return mathDKN.cos(self.visit(ctx.expr()))
 
     def visitTanFunc(self, ctx):
-        return mathDKN.tan(self.visit(ctx.expr()))
+        try:
+            return mathDKN.tan(self.visit(ctx.expr()))
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
 
     def visitSumaResta(self, ctx):
         left = self.visit(ctx.expr(0))
@@ -234,7 +205,10 @@ class EvalVisitor(grammarDKNVisitor):
         if op == '/':
             if right == 0:
                 raise DKNRuntimeError("Imposible dividir entre 0.")
-            return left / right
+            try:
+                return left / right
+            except OverflowError:
+                raise DKNRuntimeError("Overflow: resultado demasiado grande.")
         # '%'
         if right == 0:
             raise DKNRuntimeError("Imposible calcular módulo entre 0.")
@@ -243,7 +217,14 @@ class EvalVisitor(grammarDKNVisitor):
     def visitPotencia(self, ctx):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
-        return left ** right
+        if left == 0 and right == 0:
+            raise DKNRuntimeError("Error matemático: 0 ^ 0 es indeterminado.")
+        if left == 0 and right < 0:
+            raise DKNRuntimeError("Error matemático: 0 elevado a exponente negativo (división por cero).")
+        try:
+            return left ** right
+        except OverflowError:
+            raise DKNRuntimeError("Overflow: potencia demasiado grande.")
 
     # Llamado por el parser cuando existe la etiqueta # PrintCommand.
     def visitPrintCommand(self, ctx):
@@ -328,7 +309,8 @@ def run(code: str):
 
     try:
         visitor.visit(tree)
-    except DKNRuntimeError as e:
+        return visitor.return_value if visitor._returned else None
+    except DKNRuntimeError:
         raise
 
 
@@ -341,7 +323,9 @@ def start_repl():
             line = input("> " if not buf else "")
             if line == "" and buf:
                 try:
-                    run("\n".join(buf))
+                    ret = run("\n".join(buf))
+                    if ret is not None:
+                        print(ret)
                 except (DKNParseError, DKNRuntimeError) as e:
                     print("Error:", e)
                 buf = []
