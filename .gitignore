@@ -12,5 +12,5 @@ __pycache__/
 DeepLearning*
 
 # Opcional: regenerables con antlr4 (descomenta si no quieres versionarlos)
-# *.tokens
-# *.interp
+ *.tokens
+ *.interp
