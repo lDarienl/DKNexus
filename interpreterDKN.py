@@ -216,7 +216,11 @@ class EvalVisitor(grammarDKNVisitor):
             raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
         return self.variables[name]
 
-    def visitParens(self, ctx):
+    def visitStringLiteral(self, ctx):
+        raw = ctx.STRING().getText()
+        # Quitar comillas de los extremos y desescapar \"
+        inner = raw[1:-1].replace('\\"', '"')
+        return inner
         return self.visit(ctx.expr())
 
     def visitSinFunc(self, ctx):
