@@ -5,25 +5,25 @@ grammar grammarDKN;
 program: statement+;
 
 statement
-    : expr ';'                                                      # print expresion
-    | VARIABLE '=' expr ';'                                         # asignacion
-    | 'if' '(' expr ')' '{' statement+ '}'                          # if
-    | 'for' '(' expr ';' expr ';' expr ')' '{' statement+ '}'       # for
-    | 'while' '(' expr ')' '{' statement+ '}'                       # while
+    : expr ';'                                                      # PrintExpr
+    | VARIABLE '=' expr ';'                                         # Asignacion
+    | 'if' '(' expr ')' '{' statement+ '}'                          # IfStmt
+    | 'for' '(' expr ';' expr ';' expr ')' '{' statement+ '}'       # ForStmt
+    | 'while' '(' expr ')' '{' statement+ '}'                       # WhileStmt
     ;
 
 // expr: primera alternativa = menor prioridad, última = mayor.
 // Orden: suma/resta < mult/div < potencia.
 expr
-    | expr op=('+'|'-') expr            # suma y resta (menor prioridad)
-    | expr op=('*'|'/'|'%') expr        # multiplicacion y division
-    | expr '^' expr                     # potencia (mayor prioridad)
-    | '(' expr ')'                      # parentesis
-    | 'sin' '(' expr ')'                # funcion seno
-    | 'cos' '(' expr ')'                # funcion coseno
-    | 'tan' '(' expr ')'                # funcion tangente
-    | NUMBER                            # int
-    | VARIABLE                          # id
+    : expr op=('+'|'-') expr            # SumaResta
+    | expr op=('*'|'/'|'%') expr        # MulDivMod
+    | expr '^' expr                     # Potencia
+    | '(' expr ')'                      # Parens
+    | 'sin' '(' expr ')'                # SinFunc
+    | 'cos' '(' expr ')'                # CosFunc
+    | 'tan' '(' expr ')'                # TanFunc
+    | NUMBER                            # Num
+    | VARIABLE                          # Var
     ;
 
 NUMBER: [0-9]+ ('.' [0-9]+)?;
