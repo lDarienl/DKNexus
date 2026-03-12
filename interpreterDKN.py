@@ -6,9 +6,27 @@ Ejecutar desde el directorio del proyecto (donde están los .py generados por AN
 
 import mathDKN
 from antlr4 import InputStream, CommonTokenStream
+from antlr4.error.ErrorListener import ErrorListener
 from grammarDKNLexer import grammarDKNLexer
 from grammarDKNParser import grammarDKNParser
 from grammarDKNVisitor import grammarDKNVisitor
+
+
+class DKNRuntimeError(Exception):
+    pass
+
+
+class DKNParseError(Exception):
+    pass
+
+
+class CollectingErrorListener(ErrorListener):
+    def __init__(self):
+        super().__init__()
+        self.errors = []
+
+    def syntaxError(self, recognizer, offendingSymbol, line, column, msg, e):
+        self.errors.append(f"L{line}:{column} {msg}")
 
 
 class EvalVisitor(grammarDKNVisitor):
@@ -214,8 +232,13 @@ class EvalVisitor(grammarDKNVisitor):
         if op == '*':
             return left * right
         if op == '/':
-            return left / right if right != 0 else 0
-        return left % right if right != 0 else 0
+            if right == 0:
+                raise DKNRuntimeError("Imposible dividir entre 0.")
+            return left / right
+        # '%'
+        if right == 0:
+            raise DKNRuntimeError("Imposible calcular módulo entre 0.")
+        return left % right
 
     def visitPotencia(self, ctx):
         left = self.visit(ctx.expr(0))
@@ -277,11 +300,36 @@ def run(code: str):
     """Analiza y ejecuta código del DSL."""
     input_stream = InputStream(code)
     lexer = grammarDKNLexer(input_stream)
+    lexer_err = CollectingErrorListener()
+    lexer.removeErrorListeners()
+    lexer.addErrorListener(lexer_err)
+
     stream = CommonTokenStream(lexer)
+    stream.fill()
+
+    # Error léxico específico: identificador inválido (empieza con número).
+    for tok in stream.tokens:
+        if tok.type == grammarDKNLexer.INVALID_ID:
+            raise DKNParseError(
+                f"Identificador inválido '{tok.text}' en L{tok.line}:{tok.column}. "
+                "Un identificador no puede empezar con número."
+            )
+
     parser = grammarDKNParser(stream)
+    parser_err = CollectingErrorListener()
+    parser.removeErrorListeners()
+    parser.addErrorListener(parser_err)
+
     tree = parser.program()
     visitor = EvalVisitor()
-    visitor.visit(tree)
+    if lexer_err.errors or parser_err.errors:
+        errors = lexer_err.errors + parser_err.errors
+        raise DKNParseError("\n".join(errors))
+
+    try:
+        visitor.visit(tree)
+    except DKNRuntimeError as e:
+        raise
 
 
 def start_repl():
@@ -292,7 +340,10 @@ def start_repl():
         while True:
             line = input("> " if not buf else "")
             if line == "" and buf:
-                run("\n".join(buf))
+                try:
+                    run("\n".join(buf))
+                except (DKNParseError, DKNRuntimeError) as e:
+                    print("Error:", e)
                 buf = []
             elif line == "":
                 continue
@@ -310,7 +361,10 @@ def main():
     if path.strip():
         try:
             with open(path.strip(), 'r', encoding='utf-8') as f:
-                run(f.read())
+                try:
+                    run(f.read())
+                except (DKNParseError, DKNRuntimeError) as e:
+                    print("Error:", e)
         except Exception as e:
             print("Error al abrir el archivo:", e)
     else:
