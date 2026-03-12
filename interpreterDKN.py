@@ -16,19 +16,39 @@ class EvalVisitor(grammarDKNVisitor):
 
     def __init__(self):
         self.variables = {}
+        self._returned = False
+        self.return_value = None
 
     def visitProgram(self, ctx):
         for st in ctx.statement():
+            if self._returned:
+                break
             self.visit(st)
         return None
 
     def visitStatement(self, ctx):
+        if self._returned:
+            return None
+
         # asignacion: VARIABLE '=' expr ';' (detectar antes que expr para no imprimir)
         if ctx.VARIABLE() and ctx.getChildCount() >= 4 and ctx.getChild(1).getText() == '=':
             name = ctx.VARIABLE().getText()
-            value = self.visit(ctx.expr())
+            value = self.visit(ctx.expr(0))
             self.variables[name] = value
             return None
+
+        # print(expr);
+        if ctx.getChildCount() >= 5 and ctx.getChild(0).getText() == 'print':
+            val = self.visit(ctx.expr(0))
+            print(val)
+            return None
+
+        # return expr;
+        if ctx.getChildCount() >= 3 and ctx.getChild(0).getText() == 'return':
+            self.return_value = self.visit(ctx.expr(0))
+            self._returned = True
+            return None
+
         # expr ';' (imprimir expresión)
         if ctx.expr():
             val = self.visit(ctx.expr(0))
@@ -94,9 +114,21 @@ class EvalVisitor(grammarDKNVisitor):
     # Llamado por el parser cuando existe la etiqueta # asignacion (tras regenerar con antlr4).
     def visitAsignacion(self, ctx):
         name = ctx.VARIABLE().getText()
-        value = self.visit(ctx.expr())  # ctx.expr() es lista; usar expr(0)
+        value = self.visit(ctx.expr(0))  # ctx.expr() es lista; usar expr(0)
         self.variables[name] = value
         return value
+
+    # Llamado por el parser cuando existe la etiqueta # PrintCommand.
+    def visitPrintCommand(self, ctx):
+        val = self.visit(ctx.expr(0))
+        print(val)
+        return None
+
+    # Llamado por el parser cuando existe la etiqueta # ReturnStmt.
+    def visitReturnStmt(self, ctx):
+        self.return_value = self.visit(ctx.expr(0))
+        self._returned = True
+        return self.return_value
 
     # Alias en inglés por si se usa esa etiqueta en la gramática.
     def visitAssignment(self, ctx):

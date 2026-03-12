@@ -5,7 +5,9 @@ grammar grammarDKN;
 program: statement+;
 
 statement
-    : expr ';'                                                      # PrintExpr
+    : 'print' '(' expr ')' ';'                                      # PrintCommand
+    | 'return' expr ';'                                             # ReturnStmt
+    | expr ';'                                                      # PrintExpr
     | VARIABLE '=' expr ';'                                         # Asignacion
     | 'if' '(' expr ')' '{' statement+ '}'                          # IfStmt
     | 'for' '(' expr ';' expr ';' expr ')' '{' statement+ '}'       # ForStmt
