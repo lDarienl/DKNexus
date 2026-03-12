@@ -57,9 +57,14 @@ STRING: '"' ( '\\"' | ~["\r\n] )* '"';
 // Identificadores: deben empezar con letra o '_' y luego pueden tener letras, dígitos o '_'.
 // Ej: x, y2, _tmp, radio10.  NO permitido: 1nombre
 INVALID_ID: [0-9]+ [a-zA-Z_][a-zA-Z0-9_]*;
+
+// Comentarios de línea: se ignoran completamente
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
+
 // Constantes reservadas (case-insensitive)
 PI: [pP][iI];
 EULER: [eE];
 INF: [iI][nN][fF];
+
 VARIABLE: [a-zA-Z_][a-zA-Z0-9_]*;
 WS: [ \t\r\n]+ -> skip;

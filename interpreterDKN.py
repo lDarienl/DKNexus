@@ -492,6 +492,7 @@ def start_repl():
                     ret = run("\n".join(buf))
                     if ret is not None:
                         print(ret)
+                    print(">>> Ejecutado.")
                 except (DKNParseError, DKNRuntimeError) as e:
                     print("Error:", e)
                 buf = []
@@ -505,18 +506,28 @@ def start_repl():
 
 
 def main():
+    # Todo entra por input(), sin sys.argv.
     print("--- DKNexus DSL Interpreter ---")
-    path = input("Ingrese la ruta del archivo .dkn o presione Enter para consola: ")
+    print("Para ejecutar un archivo, escribe la ruta (ej: prueba.dkn).")
+    print("Para entrar a la consola interactiva, presiona Enter.")
 
-    if path.strip():
+    path = input(">> ").strip()
+
+    if path:
         try:
-            with open(path.strip(), 'r', encoding='utf-8') as f:
-                try:
-                    run(f.read())
-                except (DKNParseError, DKNRuntimeError) as e:
-                    print("Error:", e)
+            with open(path, 'r', encoding='utf-8') as f:
+                codigo = f.read()
+            print(f"\n--- Ejecutando: {path} ---")
+            ret = run(codigo)
+            if ret is not None:
+                print(ret)
+            print("--- Fin de ejecución ---\n")
+        except FileNotFoundError:
+            print(f"Error: No se encontró el archivo '{path}'.")
+        except (DKNParseError, DKNRuntimeError) as e:
+            print("Error durante la ejecución:", e)
         except Exception as e:
-            print("Error al abrir el archivo:", e)
+            print("Ocurrió un error inesperado:", e)
     else:
         start_repl()
 
