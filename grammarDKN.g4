@@ -8,6 +8,8 @@ statement
     : 'print' '(' expr ')' ';'                                      # PrintCommand
     | 'return' expr ';'                                             # ReturnStmt
     | 'return' ';'                                                  # ReturnVoid
+    | 'push' '(' VARIABLE ',' expr ')' ';'                          # StackPushStmt
+    | 'enqueue' '(' VARIABLE ',' expr ')' ';'                       # QueueEnqueueStmt
     | expr ';'                                                      # PrintExpr
     | VARIABLE '=' expr ';'                                         # Asignacion
     | 'if' '(' expr ')' '{' statement+ '}'                          # IfStmt
@@ -36,6 +38,11 @@ expr
     | 'abs' '(' expr ')'                # AbsFunc
     | 'floor' '(' expr ')'              # FloorFunc
     | 'ceil' '(' expr ')'               # CeilFunc
+    | 'trans' '(' expr ')'              # MatrixTrans
+    | 'inv' '(' expr ')'                # MatrixInv
+    | 'pop' '(' VARIABLE ')'            # StackPop
+    | 'dequeue' '(' VARIABLE ')'        # QueueDequeue
+    | '[' (expr (',' expr)*)? ']'       # ListLiteral
     | PI                                # PiConst
     | EULER                             # EConst
     | INF                               # InfConst

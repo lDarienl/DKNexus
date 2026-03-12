@@ -5,6 +5,7 @@ Ejecutar desde el directorio del proyecto (donde están los .py generados por AN
 """
 
 import mathDKN
+import matrixDKN
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from grammarDKNLexer import grammarDKNLexer
@@ -67,6 +68,9 @@ class EvalVisitor(grammarDKNVisitor):
         if isinstance(value, float) and value != value:
             raise DKNRuntimeError("Operación inválida: El resultado es un valor indeterminado (NaN).")
         return value
+
+    def _is_matrix2x2(self, v):
+        return matrixDKN.is_matrix_2x2(v)
 
     def visitProgram(self, ctx):
         for st in ctx.statement():
@@ -134,6 +138,26 @@ class EvalVisitor(grammarDKNVisitor):
             if self._returned:
                 break
             self.visit(ctx.expr(2))  # update
+        return None
+
+    def visitStackPushStmt(self, ctx):
+        name = ctx.VARIABLE().getText()
+        val = self.visit(ctx.expr())
+        if name not in self.variables:
+            self.variables[name] = []
+        if not isinstance(self.variables[name], list):
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es una lista/pila.")
+        self.variables[name].append(val)
+        return None
+
+    def visitQueueEnqueueStmt(self, ctx):
+        name = ctx.VARIABLE().getText()
+        val = self.visit(ctx.expr())
+        if name not in self.variables:
+            self.variables[name] = []
+        if not isinstance(self.variables[name], list):
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es una lista/cola.")
+        self.variables[name].append(val)
         return None
 
     def visitExpr(self, ctx):
@@ -248,6 +272,42 @@ class EvalVisitor(grammarDKNVisitor):
     def visitCeilFunc(self, ctx):
         return mathDKN.ceil(self._require_number(self.visit(ctx.expr())))
 
+    def visitMatrixTrans(self, ctx):
+        m = self.visit(ctx.expr())
+        try:
+            return matrixDKN.matrix_transpose_2x2(m)
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitMatrixInv(self, ctx):
+        m = self.visit(ctx.expr())
+        try:
+            return matrixDKN.matrix_inv_2x2(m)
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitStackPop(self, ctx):
+        name = ctx.VARIABLE().getText()
+        if name not in self.variables or not isinstance(self.variables[name], list):
+            raise DKNRuntimeError(f"Error Semántico: La pila '{name}' no existe o no es una lista.")
+        if not self.variables[name]:
+            raise DKNRuntimeError(f"Error: La pila '{name}' está vacía.")
+        return self.variables[name].pop()
+
+    def visitQueueDequeue(self, ctx):
+        name = ctx.VARIABLE().getText()
+        if name not in self.variables or not isinstance(self.variables[name], list):
+            raise DKNRuntimeError(f"Error Semántico: La cola '{name}' no existe o no es una lista.")
+        if not self.variables[name]:
+            raise DKNRuntimeError(f"Error: La cola '{name}' está vacía.")
+        return self.variables[name].pop(0)
+
+    def visitListLiteral(self, ctx):
+        values = []
+        for e in ctx.expr():
+            values.append(self.visit(e))
+        return values
+
     def visitUnaryMinus(self, ctx):
         v = self._require_number(self.visit(ctx.expr()))
         return -v
@@ -262,19 +322,45 @@ class EvalVisitor(grammarDKNVisitor):
         return mathDKN.INF
 
     def visitSumaResta(self, ctx):
-        left = self._require_number(self.visit(ctx.expr(0)))
-        right = self._require_number(self.visit(ctx.expr(1)))
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
         op = ctx.op.text
+        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+            if not (self._is_matrix2x2(left) and self._is_matrix2x2(right)):
+                raise DKNRuntimeError("Error de Dominio: No se puede sumar/restar matriz con escalar.")
+            try:
+                return matrixDKN.matrix_add_2x2(left, right) if op == '+' else matrixDKN.matrix_sub_2x2(left, right)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e))
+        left = self._require_number(left)
+        right = self._require_number(right)
         res = left + right if op == '+' else left - right
         return self._reject_nan(res)
 
     def visitMulDivMod(self, ctx):
-        left = self._require_number(self.visit(ctx.expr(0)))
-        right = self._require_number(self.visit(ctx.expr(1)))
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
         op = ctx.op.text
         if op == '*':
+            if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+                try:
+                    if self._is_matrix2x2(left) and self._is_matrix2x2(right):
+                        return matrixDKN.matrix_mul_2x2(left, right)
+                    if self._is_matrix2x2(left) and isinstance(right, (int, float)):
+                        return matrixDKN.matrix_scalar_mul_2x2(left, right)
+                    if self._is_matrix2x2(right) and isinstance(left, (int, float)):
+                        return matrixDKN.matrix_scalar_mul_2x2(right, left)
+                    raise DKNRuntimeError("Error de Dominio: multiplicación inválida con matrices.")
+                except ValueError as e:
+                    raise DKNRuntimeError(str(e))
+            left = self._require_number(left)
+            right = self._require_number(right)
             return self._reject_nan(left * right)
         if op == '/':
+            if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+                raise DKNRuntimeError("Error de Dominio: división no soportada para matrices.")
+            left = self._require_number(left)
+            right = self._require_number(right)
             if right == 0:
                 raise DKNRuntimeError("Imposible dividir entre 0.")
             try:
@@ -282,6 +368,10 @@ class EvalVisitor(grammarDKNVisitor):
             except OverflowError:
                 raise DKNRuntimeError("Error de Desbordamiento: El resultado es demasiado grande para ser procesado.")
         # '%'
+        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+            raise DKNRuntimeError("Error de Dominio: módulo no soportado para matrices.")
+        left = self._require_number(left)
+        right = self._require_number(right)
         if right == 0:
             raise DKNRuntimeError("Imposible calcular módulo entre 0.")
         return self._reject_nan(left % right)
