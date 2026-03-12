@@ -82,6 +82,9 @@ class EvalVisitor(grammarDKNVisitor):
         return None
 
     def visitExpr(self, ctx):
+        # Nota: Con alternativas etiquetadas en ANTLR (p.ej. #SumaResta),
+        # normalmente se llaman métodos visitSumaResta/visitMulDivMod/etc.
+        # Este método se mantiene como fallback para contextos no etiquetados.
         # NUMBER
         if ctx.NUMBER():
             s = ctx.NUMBER().getText()
@@ -120,6 +123,48 @@ class EvalVisitor(grammarDKNVisitor):
             if first == 'tan':
                 return mathDKN.tan(val)
         return None
+
+    # ---- Expr visitors (etiquetas actuales en grammarDKN.g4) ----
+    def visitNum(self, ctx):
+        s = ctx.NUMBER().getText()
+        return float(s) if '.' in s else int(s)
+
+    def visitVar(self, ctx):
+        name = ctx.VARIABLE().getText()
+        return self.variables.get(name, 0)
+
+    def visitParens(self, ctx):
+        return self.visit(ctx.expr())
+
+    def visitSinFunc(self, ctx):
+        return mathDKN.sin(self.visit(ctx.expr()))
+
+    def visitCosFunc(self, ctx):
+        return mathDKN.cos(self.visit(ctx.expr()))
+
+    def visitTanFunc(self, ctx):
+        return mathDKN.tan(self.visit(ctx.expr()))
+
+    def visitSumaResta(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        op = ctx.op.text
+        return left + right if op == '+' else left - right
+
+    def visitMulDivMod(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        op = ctx.op.text
+        if op == '*':
+            return left * right
+        if op == '/':
+            return left / right if right != 0 else 0
+        return left % right if right != 0 else 0
+
+    def visitPotencia(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        return left ** right
 
     # Llamado por el parser cuando existe la etiqueta # asignacion (tras regenerar con antlr4).
     def visitAsignacion(self, ctx):
