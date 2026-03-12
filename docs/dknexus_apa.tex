@@ -1,0 +1,258 @@
+% PLANTILLA APA7 ADAPTADA PARA DKNEXUS
+\documentclass[stu, 12pt, letterpaper, donotrepeattitle, floatsintext, natbib]{apa7}
+\usepackage[utf8]{inputenc}
+\usepackage{comment}
+\usepackage{marvosym}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[normalem]{ulem}
+\usepackage[spanish]{babel}
+\usepackage{amssymb, amsmath}
+\selectlanguage{spanish}
+\useunder{\uline}{\ul}{}
+\newcommand{\myparagraph}[1]{\paragraph{#1}\mbox{}\\}
+
+%------------------------------------ PORTADA -----------------------------------
+\thispagestyle{empty}
+\title{\Large Lenguaje DSL DKNexus}
+\author{Darien Esteban Parra Guzmán}
+\authorsaffiliations{Universidad Sergio Arboleda \\ Ciencias de la Computación e Inteligencia Artificial}
+\course{PCIA5007-G02:CCV; LENGUAJES DE PROGRAMACION Y TRANSDUCCIÓN}
+\professor{Sánchez Cifuentes Joaquín Fernando}
+\duedate{12/03/2026}
+
+\begin{document}
+\centering
+{\includegraphics[width=0.4\textwidth]{U_Sergio_Arboleda_logo.svg.png}\par}
+\maketitle
+
+%------------------------------------ ÍNDICES -----------------------------------
+\pagenumbering{roman}
+
+\renewcommand\contentsname{\large Índice}
+\tableofcontents
+\setcounter{tocdepth}{2}
+\newpage
+
+\renewcommand{\listfigurename}{\large Índice de figuras}
+\listoffigures
+\newpage
+
+\renewcommand{\listtablename}{\large Índice de tablas}
+\listoftables
+\newpage
+
+%------------------------------------- CUERPO -----------------------------------
+\pagenumbering{arabic}
+
+\section{\large Introducción}
+El presente documento describe el diseño e implementación de \textbf{DKNexus}, un lenguaje de dominio específico (DSL) orientado a apoyar tareas de \textit{Deep Learning} y cálculo numérico básico.
+El lenguaje se construyó utilizando \textbf{ANTLR4} como generador de analizadores léxicos y sintácticos, y un \textbf{intérprete en Python 3} que aplica el patrón de diseño \textit{Visitor}.
+
+El objetivo principal es disponer de un lenguaje sencillo, funcional e interpretado, que permita expresar:
+\begin{itemize}
+  \item Operaciones aritméticas y trigonométricas.
+  \item Estructuras de control (\texttt{if}, \texttt{while}, \texttt{for}).
+  \item Manejo de matrices 2x2 (operaciones tipo \texttt{NumPy} pero sin librerías externas).
+  \item Pilas, colas y listas.
+  \item Manejo de errores matemáticos y sintácticos de forma robusta.
+\end{itemize}
+
+\section{\large Arquitectura general del proyecto}
+
+\subsection{Componentes principales}
+La arquitectura de DKNexus se organiza en tres capas:
+\begin{enumerate}
+  \item \textbf{Gramática del lenguaje} (\texttt{grammarDKN.g4}), definida en ANTLR4.
+  \item \textbf{Intérprete} (\texttt{interpreterDKN.py}), que recorre el árbol de análisis usando el patrón \textit{Visitor}.
+  \item \textbf{Librerías propias}:
+  \begin{itemize}
+    \item \texttt{mathDKN.py}: operaciones matemáticas escalares (trigonometría, logaritmos, raíces, etc.).
+    \item \texttt{matrixDKN.py}: operaciones de matrices 2x2 (suma, resta, inversa, transpuesta, multiplicación).
+  \end{itemize}
+\end{enumerate}
+
+\subsection{Estructura de carpetas}
+La estructura final propuesta del proyecto es:
+\begin{verbatim}
+DKNexus/
+  README.md
+  requirements.txt
+  build.sh
+  build.bat
+  .gitignore
+
+  grammar/
+    grammarDKN.g4
+
+  src/
+    __init__.py
+    interpreterDKN.py
+    mathDKN.py
+    matrixDKN.py
+    grammarDKNLexer.py
+    grammarDKNParser.py
+    grammarDKNVisitor.py
+    grammarDKNBaseVisitor.py
+
+  tests/
+    ejemplos_basicos.dkn
+    matrices.dkn
+    pilas_colas.dkn
+    errores.dkn
+\end{verbatim}
+
+\section{\large Diseño de la gramática (\texttt{grammarDKN.g4})}
+
+\subsection{Elementos léxicos}
+La gramática incluye los siguientes elementos léxicos relevantes:
+\begin{itemize}
+  \item \textbf{Números}: \texttt{NUMBER} soporta enteros y decimales.
+  \item \textbf{Identificadores}: \texttt{VARIABLE} comienza con letra o guion bajo y puede contener dígitos.
+  \item \textbf{Strings}: \texttt{STRING} define literales entre comillas dobles.
+  \item \textbf{Constantes}: \texttt{PI}, \texttt{EULER}, \texttt{INF} (insensibles a mayúsculas).
+  \item \textbf{Comentarios}: \texttt{LINE\_COMMENT} con la sintaxis \texttt{// comentario} hasta el fin de línea.
+\end{itemize}
+
+\subsection{Sintaxis de expresiones}
+La regla \texttt{expr} define:
+\begin{itemize}
+  \item Operadores binarios con recursión izquierda y precedencia:
+  \begin{itemize}
+    \item \texttt{\^{}} (potencia).
+    \item \texttt{* / \%} (producto, división y módulo).
+    \item \texttt{+ -} (suma y resta).
+  \end{itemize}
+  \item Menos unario: \texttt{- expr}.
+  \item Llamadas a funciones: \texttt{sin}, \texttt{cos}, \texttt{tan}, \texttt{tanh}, \texttt{sqrt}, \texttt{root}, \texttt{log}, \texttt{log10}, \texttt{abs}, \texttt{floor}, \texttt{ceil}.
+  \item Manejo de matrices: \texttt{trans(expr)} y \texttt{inv(expr)}.
+  \item Estructuras de datos: literales de lista \texttt{[ expr, expr, ... ]}, \texttt{pop} y \texttt{dequeue}.
+  \item Literales escalares: números, strings y variables.
+\end{itemize}
+
+\subsection{Sentencias}
+La regla \texttt{statement} contempla:
+\begin{itemize}
+  \item \texttt{expr ;} para evaluar e imprimir expresiones.
+  \item Asignación: \texttt{VARIABLE = expr ;}.
+  \item \texttt{print(expr);} para impresión explícita.
+  \item \texttt{return expr;} y \texttt{return;} para terminar la ejecución.
+  \item Control de flujo: \texttt{if}, \texttt{while}, \texttt{for}.
+  \item Operaciones de pila/cola: \texttt{push(VARIABLE, expr);} y \texttt{enqueue(VARIABLE, expr);} como sentencias.
+\end{itemize}
+
+\section{\large Intérprete y patrón Visitor}
+
+\subsection{Intérprete principal (\texttt{interpreterDKN.py})}
+El intérprete implementa una clase \texttt{EvalVisitor} que hereda de \texttt{grammarDKNVisitor} (generado por ANTLR).
+Este visitante define métodos \texttt{visitNombreDeReglaContext} para:
+\begin{itemize}
+  \item Evaluar expresiones aritméticas y funciones matemáticas.
+  \item Manejar estructuras de control (\texttt{visitIfStmt}, \texttt{visitWhileStmt}, \texttt{visitForStmt}).
+  \item Gestionar el entorno de variables (diccionario interno \texttt{self.variables}).
+  \item Implementar pilas y colas mediante listas de Python.
+  \item Integrar operaciones de matrices 2x2 llamando a \texttt{matrixDKN}.
+\end{itemize}
+
+\subsection{Librería matemática (\texttt{mathDKN.py})}
+Implementa, sin librerías externas, funciones como:
+\begin{itemize}
+  \item \texttt{sin}, \texttt{cos}, \texttt{tan}, \texttt{tanh}.
+  \item \texttt{sqrt}, \texttt{root}.
+  \item \texttt{log}, \texttt{log10}.
+  \item \texttt{abs}, \texttt{floor}, \texttt{ceil}.
+  \item Constantes \texttt{PI}, \texttt{E}, \texttt{INF}.
+\end{itemize}
+
+Cada función valida dominios y lanza errores de tipo \texttt{ValueError} que luego se traducen en \texttt{DKNRuntimeError} en el intérprete.
+
+\subsection{Librería de matrices (\texttt{matrixDKN.py})}
+Proporciona un conjunto de operaciones tipo \texttt{NumPy}, pero limitado a matrices 2x2:
+\begin{itemize}
+  \item Detección de matriz 2x2 (\texttt{is\_matrix\_2x2}).
+  \item Transpuesta (\texttt{matrix\_transpose\_2x2}).
+  \item Suma y resta (\texttt{matrix\_add\_2x2}, \texttt{matrix\_sub\_2x2}).
+  \item Multiplicación de matrices y por escalar.
+  \item Inversa (\texttt{matrix\_inv\_2x2}), con verificación del determinante.
+\end{itemize}
+
+\section{\large Manejo de errores}
+
+El lenguaje implementa distintos tipos de errores:
+
+\begin{itemize}
+  \item \textbf{Errores matemáticos}: división por cero, potencias indefinidas, logaritmos fuera de dominio, raíces de números negativos, etc.
+  \item \textbf{Errores de desbordamiento}: cuando el resultado es demasiado grande para ser representado.
+  \item \textbf{Errores semánticos}: variables no declaradas, tipos inválidos en operaciones numéricas, operaciones no soportadas entre matrices y escalares.
+  \item \textbf{Errores léxicos y sintácticos}: identificadores inválidos, tokens ilegales, llamadas a funciones mal formadas, falta de punto y coma, entre otros.
+\end{itemize}
+
+Todos se reportan con mensajes claros, indicando en lo posible la línea y columna donde se produce el problema.
+
+\section{\large Ejecución y pruebas}
+
+\subsection{Entorno de ejecución}
+Para ejecutar DKNexus se requiere:
+\begin{itemize}
+  \item \textbf{Python 3} (se recomienda 3.10+).
+  \item \textbf{ANTLR4} (JAR) instalado y accesible mediante el comando \texttt{antlr4}.
+  \item Un entorno virtual configurado con la dependencia \texttt{antlr4-python3-runtime}.
+\end{itemize}
+
+\subsection{Construcción del parser}
+Cada vez que se modifica la gramática \texttt{grammarDKN.g4}, es necesario regenerar el lexer, parser y visitor:
+
+\begin{verbatim}
+./build.sh
+\end{verbatim}
+
+o la versión equivalente en Windows (\texttt{build.bat}).
+
+\subsection{Ejecución del intérprete}
+Con el entorno virtual activado:
+
+\begin{verbatim}
+python3 src/interpreterDKN.py
+\end{verbatim}
+
+Al iniciar, el intérprete permite:
+\begin{itemize}
+  \item Escribir la ruta de un archivo \texttt{.dkn} (por ejemplo, \texttt{tests/aritmetica\_y\_errores.dkn}) para ejecutarlo completo.
+  \item Presionar Enter para entrar al modo interactivo (REPL).
+\end{itemize}
+
+En el REPL:
+\begin{itemize}
+  \item Se escriben una o varias líneas de código.
+  \item Una línea vacía provoca la ejecución del bloque acumulado.
+  \item Se muestra un mensaje de confirmación y cualquier salida de \texttt{print} o \texttt{return}.
+\end{itemize}
+
+\section{\large Conclusiones}
+
+DKNexus demuestra que es posible construir un lenguaje de dominio específico orientado a tareas de Deep Learning y cálculo numérico básico utilizando únicamente:
+\begin{itemize}
+  \item ANTLR4 como generador de analizadores.
+  \item Python 3 como lenguaje de implementación.
+  \item Librerías propias para operaciones matemáticas y de matrices, evitando dependencias externas como NumPy.
+\end{itemize}
+
+El lenguaje ofrece una sintaxis sencilla, manejo robusto de errores y soporte para estructuras de datos y operaciones propias del contexto de redes neuronales (matrices de pesos, pilas de historial, funciones de activación, etc.).
+
+\newpage
+%---------------------------------- REFERENCIAS ---------------------------------
+\renewcommand\refname{\large\textbf{Referencias}}
+\begin{thebibliography}{9}
+\bibitem{apa7}
+Weiss, D. (2021).
+\textit{Formatting documents in APA style (7th Edition) with the apa7 LaTeX class}.
+Recuperado de \url{https://ctan.math.washington.edu/tex-archive/macros/latex/contrib/apa7/apa7.pdf}
+
+\bibitem{normasapa}
+Normas APA. (2019).
+\textit{Guía Normas APA.}
+Recuperado de \url{https://normas-apa.org/wp-content/uploads/Guia-Normas-APA-7ma-edicion.pdf}
+\end{thebibliography}
+
+\end{document}
+
