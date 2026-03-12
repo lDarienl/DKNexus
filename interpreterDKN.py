@@ -26,7 +26,7 @@ class EvalVisitor(grammarDKNVisitor):
         # asignacion: VARIABLE '=' expr ';' (detectar antes que expr para no imprimir)
         if ctx.VARIABLE() and ctx.getChildCount() >= 4 and ctx.getChild(1).getText() == '=':
             name = ctx.VARIABLE().getText()
-            value = self.visit(ctx.expr(0))
+            value = self.visit(ctx.expr())
             self.variables[name] = value
             return None
         # expr ';' (imprimir expresión)
@@ -94,7 +94,7 @@ class EvalVisitor(grammarDKNVisitor):
     # Llamado por el parser cuando existe la etiqueta # asignacion (tras regenerar con antlr4).
     def visitAsignacion(self, ctx):
         name = ctx.VARIABLE().getText()
-        value = self.visit(ctx.expr(0))  # ctx.expr() es lista; usar expr(0)
+        value = self.visit(ctx.expr())  # ctx.expr() es lista; usar expr(0)
         self.variables[name] = value
         return value
 
