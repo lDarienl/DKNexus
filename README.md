@@ -12,7 +12,7 @@ El proyecto está configurado para trabajar **solo con el target Python3** (sin 
 
 ## 1. Estructura del proyecto
 
-Después de organizarlo, la estructura recomendada es:
+La estructura es:
 
 ```text
 DKNexus/
