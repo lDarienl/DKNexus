@@ -27,7 +27,13 @@ def compute_e(iterations=20):
 
 E = compute_e(20)
 
+# Infinito (sin usar librerías): float('inf') es built-in, pero usamos 1e309.
+INF = 1e309
+
 def factorial(n):
+    # Solo para enteros no negativos
+    if int(n) != n or n < 0:
+        raise ValueError("Error de Argumento: El factorial solo se define para enteros no negativos.")
     res = 1
     for i in range(2, n + 1):
         res *= i
@@ -74,7 +80,7 @@ def ceil(x):
 
 def sqrt(x, iterations=30):
     if x < 0:
-        raise ValueError("Error de dominio: sqrt(x) requiere x >= 0.")
+        raise ValueError("Error de Dominio: No se puede calcular la raíz cuadrada de un número negativo.")
     if x == 0:
         return 0.0
     # Newton-Raphson
@@ -122,7 +128,7 @@ def _ln_series(x):
 
 def log(x):
     if x <= 0:
-        raise ValueError("Error de dominio: log(x) requiere x > 0.")
+        raise ValueError("Error de Dominio: El logaritmo solo está definido para números positivos.")
     # Escalar x a [0.5, 2] usando potencias de 2
     k = 0
     while x > 2:
@@ -147,7 +153,7 @@ def root(x, y):
     if x < 0:
         yi = int(y)
         if abs(y - yi) > 1e-12 or yi % 2 == 0:
-            raise ValueError("Error de dominio: root(x, y) con x < 0 requiere y impar entero.")
+            raise ValueError("Error de Dominio: Raíz par de un número negativo produce un número complejo.")
         return -root(-x, y)
     return exp(log(x) / y)
 

@@ -32,6 +32,10 @@ class CollectingErrorListener(ErrorListener):
             friendly = "Falta ';' al final de la instrucción."
         elif "token recognition error at" in msg:
             friendly = msg.replace("token recognition error at:", "Token inválido:")
+        elif "mismatched input ',' expecting ')'" in msg:
+            friendly = "Llamada a función mal formada: cantidad de argumentos incorrecta."
+        elif "no viable alternative" in msg:
+            friendly = "Error de sintaxis: expresión/instrucción mal formada."
         self.errors.append(f"L{line}:{column} {friendly}")
 
 
@@ -52,6 +56,17 @@ class EvalVisitor(grammarDKNVisitor):
             return ctx.expr(0)
         except TypeError:
             return ctx.expr()
+
+    def _require_number(self, value):
+        if not isinstance(value, (int, float)):
+            raise DKNRuntimeError("Tipo de dato inválido: Se esperaba un número.")
+        return value
+
+    def _reject_nan(self, value):
+        # NaN es el único valor que no es igual a sí mismo en Python
+        if isinstance(value, float) and value != value:
+            raise DKNRuntimeError("Operación inválida: El resultado es un valor indeterminado (NaN).")
+        return value
 
     def visitProgram(self, ctx):
         for st in ctx.statement():
@@ -132,7 +147,9 @@ class EvalVisitor(grammarDKNVisitor):
         # VARIABLE
         if ctx.VARIABLE():
             name = ctx.VARIABLE().getText()
-            return self.variables.get(name, 0)
+            if name not in self.variables:
+                raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
+            return self.variables[name]
         # expr op expr (binario)
         if ctx.expr() and len(ctx.expr()) == 2:
             left = self.visit(ctx.expr(0))
@@ -172,100 +189,114 @@ class EvalVisitor(grammarDKNVisitor):
     def visitVar(self, ctx):
         name = ctx.VARIABLE().getText()
         if name not in self.variables:
-            raise DKNRuntimeError(f"Variable '{name}' no ha sido definida.")
+            raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
         return self.variables[name]
 
     def visitParens(self, ctx):
         return self.visit(ctx.expr())
 
     def visitSinFunc(self, ctx):
-        return mathDKN.sin(self.visit(ctx.expr()))
+        return mathDKN.sin(self._require_number(self.visit(ctx.expr())))
 
     def visitCosFunc(self, ctx):
-        return mathDKN.cos(self.visit(ctx.expr()))
+        return mathDKN.cos(self._require_number(self.visit(ctx.expr())))
 
     def visitTanFunc(self, ctx):
         try:
-            return mathDKN.tan(self.visit(ctx.expr()))
+            return mathDKN.tan(self._require_number(self.visit(ctx.expr())))
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitTanhFunc(self, ctx):
         try:
-            return mathDKN.tanh(self.visit(ctx.expr()))
+            return mathDKN.tanh(self._require_number(self.visit(ctx.expr())))
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitSqrtFunc(self, ctx):
         try:
-            return mathDKN.sqrt(self.visit(ctx.expr()))
+            return mathDKN.sqrt(self._require_number(self.visit(ctx.expr())))
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitRootFunc(self, ctx):
         try:
-            x = self.visit(ctx.expr(0))
-            y = self.visit(ctx.expr(1))
+            x = self._require_number(self.visit(ctx.expr(0)))
+            y = self._require_number(self.visit(ctx.expr(1)))
             return mathDKN.root(x, y)
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitLogFunc(self, ctx):
         try:
-            return mathDKN.log(self.visit(ctx.expr()))
+            return mathDKN.log(self._require_number(self.visit(ctx.expr())))
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitLog10Func(self, ctx):
         try:
-            return mathDKN.log10(self.visit(ctx.expr()))
+            return mathDKN.log10(self._require_number(self.visit(ctx.expr())))
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitAbsFunc(self, ctx):
-        return mathDKN.abs(self.visit(ctx.expr()))
+        return mathDKN.abs(self._require_number(self.visit(ctx.expr())))
 
     def visitFloorFunc(self, ctx):
-        return mathDKN.floor(self.visit(ctx.expr()))
+        return mathDKN.floor(self._require_number(self.visit(ctx.expr())))
 
     def visitCeilFunc(self, ctx):
-        return mathDKN.ceil(self.visit(ctx.expr()))
+        return mathDKN.ceil(self._require_number(self.visit(ctx.expr())))
+
+    def visitUnaryMinus(self, ctx):
+        v = self._require_number(self.visit(ctx.expr()))
+        return -v
+
+    def visitPiConst(self, ctx):
+        return mathDKN.PI
+
+    def visitEConst(self, ctx):
+        return mathDKN.E
+
+    def visitInfConst(self, ctx):
+        return mathDKN.INF
 
     def visitSumaResta(self, ctx):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
+        left = self._require_number(self.visit(ctx.expr(0)))
+        right = self._require_number(self.visit(ctx.expr(1)))
         op = ctx.op.text
-        return left + right if op == '+' else left - right
+        res = left + right if op == '+' else left - right
+        return self._reject_nan(res)
 
     def visitMulDivMod(self, ctx):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
+        left = self._require_number(self.visit(ctx.expr(0)))
+        right = self._require_number(self.visit(ctx.expr(1)))
         op = ctx.op.text
         if op == '*':
-            return left * right
+            return self._reject_nan(left * right)
         if op == '/':
             if right == 0:
                 raise DKNRuntimeError("Imposible dividir entre 0.")
             try:
-                return left / right
+                return self._reject_nan(left / right)
             except OverflowError:
-                raise DKNRuntimeError("Overflow: resultado demasiado grande.")
+                raise DKNRuntimeError("Error de Desbordamiento: El resultado es demasiado grande para ser procesado.")
         # '%'
         if right == 0:
             raise DKNRuntimeError("Imposible calcular módulo entre 0.")
-        return left % right
+        return self._reject_nan(left % right)
 
     def visitPotencia(self, ctx):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
+        left = self._require_number(self.visit(ctx.expr(0)))
+        right = self._require_number(self.visit(ctx.expr(1)))
         if left == 0 and right == 0:
             raise DKNRuntimeError("Error matemático: 0 ^ 0 es indeterminado.")
         if left == 0 and right < 0:
             raise DKNRuntimeError("Error matemático: 0 elevado a exponente negativo (división por cero).")
         try:
-            return left ** right
+            return self._reject_nan(left ** right)
         except OverflowError:
-            raise DKNRuntimeError("Overflow: potencia demasiado grande.")
+            raise DKNRuntimeError("Error de Desbordamiento: El resultado es demasiado grande para ser procesado.")
 
     # Llamado por el parser cuando existe la etiqueta # PrintCommand.
     def visitPrintCommand(self, ctx):

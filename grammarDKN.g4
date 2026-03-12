@@ -23,6 +23,7 @@ expr
     : expr '^' expr                     # Potencia
     | expr op=('*'|'/'|'%') expr        # MulDivMod
     | expr op=('+'|'-') expr            # SumaResta
+    | '-' expr                          # UnaryMinus
     | '(' expr ')'                      # Parens
     | 'sin' '(' expr ')'                # SinFunc
     | 'cos' '(' expr ')'                # CosFunc
@@ -35,6 +36,9 @@ expr
     | 'abs' '(' expr ')'                # AbsFunc
     | 'floor' '(' expr ')'              # FloorFunc
     | 'ceil' '(' expr ')'               # CeilFunc
+    | PI                                # PiConst
+    | EULER                             # EConst
+    | INF                               # InfConst
     | NUMBER                            # Num
     | VARIABLE                          # Var
     ;
@@ -43,5 +47,9 @@ NUMBER: [0-9]+ ('.' [0-9]+)?;
 // Identificadores: deben empezar con letra o '_' y luego pueden tener letras, dígitos o '_'.
 // Ej: x, y2, _tmp, radio10.  NO permitido: 1nombre
 INVALID_ID: [0-9]+ [a-zA-Z_][a-zA-Z0-9_]*;
+// Constantes reservadas (case-insensitive)
+PI: [pP][iI];
+EULER: [eE];
+INF: [iI][nN][fF];
 VARIABLE: [a-zA-Z_][a-zA-Z0-9_]*;
 WS: [ \t\r\n]+ -> skip;
