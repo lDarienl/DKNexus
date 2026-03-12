@@ -7,6 +7,7 @@ program: statement+;
 statement
     : 'print' '(' expr ')' ';'                                      # PrintCommand
     | 'return' expr ';'                                             # ReturnStmt
+    | 'return' ';'                                                  # ReturnVoid
     | expr ';'                                                      # PrintExpr
     | VARIABLE '=' expr ';'                                         # Asignacion
     | 'if' '(' expr ')' '{' statement+ '}'                          # IfStmt
@@ -17,9 +18,11 @@ statement
 // expr: primera alternativa = menor prioridad, última = mayor.
 // Orden: suma/resta < mult/div < potencia.
 expr
-    : expr op=('+'|'-') expr            # SumaResta
+    // NOTA ANTLR: en recursión izquierda, el orden aquí define la precedencia.
+    // Para que ^ tenga más prioridad que * y que +, se coloca primero.
+    : expr '^' expr                     # Potencia
     | expr op=('*'|'/'|'%') expr        # MulDivMod
-    | expr '^' expr                     # Potencia
+    | expr op=('+'|'-') expr            # SumaResta
     | '(' expr ')'                      # Parens
     | 'sin' '(' expr ')'                # SinFunc
     | 'cos' '(' expr ')'                # CosFunc

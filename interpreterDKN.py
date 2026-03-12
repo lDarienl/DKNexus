@@ -81,6 +81,62 @@ class EvalVisitor(grammarDKNVisitor):
                     self.visit(st)
         return None
 
+    # ---- Statement visitors (etiquetas actuales en grammarDKN.g4) ----
+    def visitPrintExpr(self, ctx):
+        if self._returned:
+            return None
+        val = self.visit(self._expr0(ctx))
+        if val is not None:
+            print(val)
+        return None
+
+    def visitAsignacion(self, ctx):
+        if self._returned:
+            return None
+        name = ctx.VARIABLE().getText()
+        value = self.visit(self._expr0(ctx))
+        self.variables[name] = value
+        return value
+
+    def visitIfStmt(self, ctx):
+        if self._returned:
+            return None
+        cond = self.visit(self._expr0(ctx))
+        if cond:
+            for st in ctx.statement():
+                if self._returned:
+                    break
+                self.visit(st)
+        return None
+
+    def visitWhileStmt(self, ctx):
+        if self._returned:
+            return None
+        # expr ')' '{' statement+ '}'
+        while self.visit(self._expr0(ctx)):
+            for st in ctx.statement():
+                if self._returned:
+                    break
+                self.visit(st)
+            if self._returned:
+                break
+        return None
+
+    def visitForStmt(self, ctx):
+        if self._returned:
+            return None
+        # for '(' expr ';' expr ';' expr ')' '{' statement+ '}'
+        self.visit(ctx.expr(0))  # init
+        while self.visit(ctx.expr(1)):
+            for st in ctx.statement():
+                if self._returned:
+                    break
+                self.visit(st)
+            if self._returned:
+                break
+            self.visit(ctx.expr(2))  # update
+        return None
+
     def visitExpr(self, ctx):
         # Nota: Con alternativas etiquetadas en ANTLR (p.ej. #SumaResta),
         # normalmente se llaman métodos visitSumaResta/visitMulDivMod/etc.
@@ -166,13 +222,6 @@ class EvalVisitor(grammarDKNVisitor):
         right = self.visit(ctx.expr(1))
         return left ** right
 
-    # Llamado por el parser cuando existe la etiqueta # asignacion (tras regenerar con antlr4).
-    def visitAsignacion(self, ctx):
-        name = ctx.VARIABLE().getText()
-        value = self.visit(self._expr0(ctx))
-        self.variables[name] = value
-        return value
-
     # Llamado por el parser cuando existe la etiqueta # PrintCommand.
     def visitPrintCommand(self, ctx):
         val = self.visit(self._expr0(ctx))
@@ -184,6 +233,11 @@ class EvalVisitor(grammarDKNVisitor):
         self.return_value = self.visit(self._expr0(ctx))
         self._returned = True
         return self.return_value
+
+    def visitReturnVoid(self, ctx):
+        self.return_value = None
+        self._returned = True
+        return None
 
     # Alias en inglés por si se usa esa etiqueta en la gramática.
     def visitAssignment(self, ctx):
