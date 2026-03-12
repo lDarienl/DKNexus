@@ -3,3 +3,14 @@ __pycache__/
 *.pyc
 .idea/
 .vscode/
+
+# Generados por ANTLR (Java) — no usamos Java, solo Python
+*.class
+*.java
+
+# Sobras de gramática antigua (nombre distinto)
+DeepLearning*
+
+# Opcional: regenerables con antlr4 (descomenta si no quieres versionarlos)
+# *.tokens
+# *.interp
