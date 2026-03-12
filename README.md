@@ -33,9 +33,12 @@ En Ubuntu 24.04+ no se pueden instalar paquetes con `pip` a nivel de sistema; ha
 
 ```bash
 cd /ruta/a/DKNexus
+rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+python3 -m ensurepip --upgrade
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 ```
 
 Cada vez que abras una nueva terminal en el proyecto, activa el venv:
