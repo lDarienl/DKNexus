@@ -27,6 +27,14 @@ expr
     | 'sin' '(' expr ')'                # SinFunc
     | 'cos' '(' expr ')'                # CosFunc
     | 'tan' '(' expr ')'                # TanFunc
+    | 'tanh' '(' expr ')'               # TanhFunc
+    | 'sqrt' '(' expr ')'               # SqrtFunc
+    | 'root' '(' expr ',' expr ')'      # RootFunc
+    | 'log' '(' expr ')'                # LogFunc
+    | 'log10' '(' expr ')'              # Log10Func
+    | 'abs' '(' expr ')'                # AbsFunc
+    | 'floor' '(' expr ')'              # FloorFunc
+    | 'ceil' '(' expr ')'               # CeilFunc
     | NUMBER                            # Num
     | VARIABLE                          # Var
     ;

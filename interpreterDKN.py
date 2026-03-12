@@ -190,6 +190,47 @@ class EvalVisitor(grammarDKNVisitor):
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
+    def visitTanhFunc(self, ctx):
+        try:
+            return mathDKN.tanh(self.visit(ctx.expr()))
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitSqrtFunc(self, ctx):
+        try:
+            return mathDKN.sqrt(self.visit(ctx.expr()))
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitRootFunc(self, ctx):
+        try:
+            x = self.visit(ctx.expr(0))
+            y = self.visit(ctx.expr(1))
+            return mathDKN.root(x, y)
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitLogFunc(self, ctx):
+        try:
+            return mathDKN.log(self.visit(ctx.expr()))
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitLog10Func(self, ctx):
+        try:
+            return mathDKN.log10(self.visit(ctx.expr()))
+        except ValueError as e:
+            raise DKNRuntimeError(str(e))
+
+    def visitAbsFunc(self, ctx):
+        return mathDKN.abs(self.visit(ctx.expr()))
+
+    def visitFloorFunc(self, ctx):
+        return mathDKN.floor(self.visit(ctx.expr()))
+
+    def visitCeilFunc(self, ctx):
+        return mathDKN.ceil(self.visit(ctx.expr()))
+
     def visitSumaResta(self, ctx):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
