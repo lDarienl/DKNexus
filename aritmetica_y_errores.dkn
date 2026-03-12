@@ -1,0 +1,27 @@
+// --- PRUEBAS MATEMÁTICAS BÁSICAS Y LÍMITES ---
+
+print("1. Probando constantes:");
+print(PI);      // Esperado: 3.141592...
+print(E);   // Esperado: 2.718281...
+
+print("2. Probando precedencia (esperado 14):");
+resultado = 2 + 3 * 4;
+print(resultado);
+
+print("3. Probando funciones trigonométricas:");
+print(sin(0));  // Esperado: 0.0
+print(cos(0));  // Esperado: 1.0
+
+print("4. FORZANDO ERRORES MATEMÁTICOS:");
+
+// Error de división
+// print(10 / 0); // Esperado: Error: Imposible dividir entre 0.
+
+// Error de raíz negativa
+// print(sqrt(-1)); // Esperado: Error: No se puede calcular la raíz cuadrada de un número negativo.
+
+// Error de logaritmo inválido
+// print(log(0)); // Esperado: Error: El logaritmo solo está definido para números positivos.
+
+// Error de potencia indeterminada
+// print(0 ^ 0); // Esperado: Error matemático: 0 ^ 0 es indeterminado.

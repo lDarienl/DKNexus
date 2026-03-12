@@ -1,0 +1,19 @@
+// --- PRUEBAS DE ROBUSTEZ SINTÁCTICA ---
+
+print("1. Probando Strings y Variables:");
+nombre = "Darien Guzman";
+print(nombre);
+
+print("2. FORZANDO ERRORES LÉXICOS Y SINTÁCTICOS:");
+
+// Error de Identificador inválido (comenta/descomenta para probar)
+// 1variable = 10; 
+// Esperado: Error: Identificador inválido '1variable'... No puede empezar con número.
+
+// Error de Punto y Coma
+// x = 5 
+// Esperado: Error: Lxx:xx Falta ';' al final de la instrucción.
+
+// Error de Variable no definida
+// print(variable_inexistente); 
+// Esperado: Error Semántico: La variable 'variable_inexistente' no ha sido declarada.

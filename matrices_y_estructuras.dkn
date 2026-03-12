@@ -1,0 +1,31 @@
+// --- PRUEBAS DE MATRICES Y COLECCIONES ---
+
+print("1. Operaciones con Matrices 2x2:");
+A = [[1, 2], [3, 4]];
+B = [[5, 6], [7, 8]];
+
+print("Suma A + B:");
+print(A + B);
+
+print("Inversa de A:");
+inv_A = inv(A);
+print(inv_A);
+
+print("Identidad (A * inv(A)):");
+print(A * inv_A);
+
+print("2. FORZANDO ERRORES DE MATRICES:");
+// Matriz singular (det = 0)
+S = [[1, 1], [1, 1]];
+// print(inv(S)); // Esperado: Error: Matriz singular (determinante = 0), no tiene inversa.
+
+print("3. Pilas y Colas:");
+pila = [];
+push(pila, "Dato 1");
+push(pila, "Dato 2");
+print(pop(pila)); // Esperado: Dato 2
+
+print("4. FORZANDO ERRORES DE COLECCIONES:");
+// Sacar de una pila ya vacía
+pila_vacia = [];
+// print(pop(pila_vacia)); // Esperado: Error: La pila 'pila_vacia' está vacía.
