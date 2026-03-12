@@ -4,8 +4,7 @@ Intérprete del DSL DKNexus usando ANTLR4 y patrón Visitor.
 Ejecutar desde el directorio del proyecto (donde están los .py generados por ANTLR).
 """
 
-import math
-import sys
+import mathDKN
 from antlr4 import InputStream, CommonTokenStream
 from grammarDKNLexer import grammarDKNLexer
 from grammarDKNParser import grammarDKNParser
@@ -24,9 +23,15 @@ class EvalVisitor(grammarDKNVisitor):
         return None
 
     def visitStatement(self, ctx):
-        # expr ';' | if | for | while
+        # asignacion: VARIABLE '=' expr ';' (detectar antes que expr para no imprimir)
+        if ctx.VARIABLE() and ctx.getChildCount() >= 4 and ctx.getChild(1).getText() == '=':
+            name = ctx.VARIABLE().getText()
+            value = self.visit(ctx.expr(0))
+            self.variables[name] = value
+            return None
+        # expr ';' (imprimir expresión)
         if ctx.expr():
-            val = self.visit(ctx.expr())
+            val = self.visit(ctx.expr(0))
             if val is not None:
                 print(val)
         elif ctx.getChild(0).getText() == 'if':
@@ -79,13 +84,53 @@ class EvalVisitor(grammarDKNVisitor):
             if first == '(':
                 return val
             if first == 'sin':
-                return math.sin(val)
+                return mathDKN.sin(val)
             if first == 'cos':
-                return math.cos(val)
+                return mathDKN.cos(val)
             if first == 'tan':
-                return math.tan(val)
+                return mathDKN.tan(val)
         return None
 
+    # Llamado por el parser cuando existe la etiqueta # asignacion (tras regenerar con antlr4).
+    def visitAsignacion(self, ctx):
+        name = ctx.VARIABLE().getText()
+        value = self.visit(ctx.expr(0))  # ctx.expr() es lista; usar expr(0)
+        self.variables[name] = value
+        return value
+
+    # Alias en inglés por si se usa esa etiqueta en la gramática.
+    def visitAssignment(self, ctx):
+        return self.visitAsignacion(ctx)
+
+    # Llamado cuando existe la etiqueta # multiplicacion y division (ctx.op = token * / %).
+    def visitMultiplicacionYDivision(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        op = ctx.op.text if hasattr(ctx, 'op') else ctx.getChild(1).getText()
+        if op == '*':
+            return left * right
+        if op == '/':
+            return left / right if right != 0 else 0
+        return left % right if right != 0 else 0
+
+    # Alias para gramática con etiqueta # muldiv.
+    def visitMulDiv(self, ctx):
+        return self.visitMultiplicacionYDivision(ctx)
+
+    # Llamado cuando existe la etiqueta # suma y resta.
+    def visitSumaYResta(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        op = ctx.op.text if hasattr(ctx, 'op') else ctx.getChild(1).getText()
+        if op == '+':
+            return left + right
+        return left - right
+
+    # Llamado cuando existe la etiqueta # potencia.
+    def visitPotencia(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        return left ** right
 
 def run(code: str):
     """Analiza y ejecuta código del DSL."""
@@ -98,27 +143,37 @@ def run(code: str):
     visitor.visit(tree)
 
 
-def main():
-    if len(sys.argv) > 1:
-        with open(sys.argv[1], 'r', encoding='utf-8') as f:
-            run(f.read())
-    else:
-        print("DKNexus DSL (solo ANTLR4). Escribe código y una línea vacía para ejecutar.")
-        print("Ejemplo: 3 + 5 ;")
-        buf = []
-        try:
-            while True:
-                line = input("> " if not buf else "")
-                if line == "" and buf:
-                    run("\n".join(buf))
-                    buf = []
-                elif line == "":
-                    continue
-                else:
-                    buf.append(line)
-        except EOFError:
-            if buf:
+def start_repl():
+    """Bucle de consola interactiva (REPL)."""
+    print("Escribe código y una línea vacía para ejecutar. Ejemplo: 3 + 5 ;")
+    buf = []
+    try:
+        while True:
+            line = input("> " if not buf else "")
+            if line == "" and buf:
                 run("\n".join(buf))
+                buf = []
+            elif line == "":
+                continue
+            else:
+                buf.append(line)
+    except EOFError:
+        if buf:
+            run("\n".join(buf))
+
+
+def main():
+    print("--- DKNexus DSL Interpreter ---")
+    path = input("Ingrese la ruta del archivo .dkn o presione Enter para consola: ")
+
+    if path.strip():
+        try:
+            with open(path.strip(), 'r', encoding='utf-8') as f:
+                run(f.read())
+        except Exception as e:
+            print("Error al abrir el archivo:", e)
+    else:
+        start_repl()
 
 
 if __name__ == "__main__":
