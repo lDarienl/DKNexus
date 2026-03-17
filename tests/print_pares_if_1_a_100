@@ -1,0 +1,9 @@
+// impares_logica.dkn
+print("--- Números impares (Usando IF) ---");
+
+for (i = 1; i <= 100; i = i + 1) {
+    // Si el residuo de i / 2 es diferente de 0, es impar
+    if (i % 2 != 0) {
+        print(i);
+    }
+}

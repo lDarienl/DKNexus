@@ -25,6 +25,7 @@ expr
     : expr '^' expr                     # Potencia
     | expr op=('*'|'/'|'%') expr        # MulDivMod
     | expr op=('+'|'-') expr            # SumaResta
+    | expr op=('<'|'>'|'<='|'>='|'=='|'!=') expr  # Comparacion
     | '-' expr                          # UnaryMinus
     | '(' expr ')'                      # Parens
     | 'sin' '(' expr ')'                # SinFunc

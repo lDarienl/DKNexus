@@ -380,6 +380,30 @@ class EvalVisitor(grammarDKNVisitor):
             raise DKNRuntimeError("Imposible calcular módulo entre 0.")
         return self._reject_nan(left % right)
 
+    def visitComparacion(self, ctx):
+        left = self.visit(ctx.expr(0))
+        right = self.visit(ctx.expr(1))
+        op = ctx.op.text if hasattr(ctx, "op") else ctx.getChild(1).getText()
+
+        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+            raise DKNRuntimeError("Error de Dominio: comparación no soportada para matrices.")
+
+        if op in ("==", "!="):
+            res = (left == right)
+            return (not res) if op == "!=" else res
+
+        left = self._require_number(left)
+        right = self._require_number(right)
+        if op == "<":
+            return left < right
+        if op == ">":
+            return left > right
+        if op == "<=":
+            return left <= right
+        if op == ">=":
+            return left >= right
+        raise DKNRuntimeError(f"Operador de comparación inválido: {op}")
+
     def visitPotencia(self, ctx):
         left = self._require_number(self.visit(ctx.expr(0)))
         right = self._require_number(self.visit(ctx.expr(1)))
@@ -437,11 +461,7 @@ class EvalVisitor(grammarDKNVisitor):
             return left + right
         return left - right
 
-    # Llamado cuando existe la etiqueta # potencia.
-    def visitPotencia(self, ctx):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
-        return left ** right
+    # (visitPotencia ya está implementado arriba con validaciones)
 
 def run(code: str):
     """Analiza y ejecuta código del DSL."""

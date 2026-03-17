@@ -1,0 +1,6 @@
+// impares_eficiente.dkn
+print("--- Números impares (Salto 2) ---");
+
+for (i = 1; i <= 100; i = i + 2) {
+    print(i);
+}
