@@ -26,6 +26,7 @@ expr
     | expr op=('*'|'/'|'%') expr        # MulDivMod
     | expr op=('+'|'-') expr            # SumaResta
     | expr op=('<'|'>'|'<='|'>='|'=='|'!=') expr  # Comparacion
+    | VARIABLE '=' expr                 # AssignExpr
     | '-' expr                          # UnaryMinus
     | '(' expr ')'                      # Parens
     | 'sin' '(' expr ')'                # SinFunc

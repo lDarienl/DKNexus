@@ -101,6 +101,14 @@ class EvalVisitor(grammarDKNVisitor):
         self.variables[name] = value
         return value
 
+    def visitAssignExpr(self, ctx):
+        if self._returned:
+            return None
+        name = ctx.VARIABLE().getText()
+        value = self.visit(ctx.expr())
+        self.variables[name] = value
+        return value
+
     def visitIfStmt(self, ctx):
         if self._returned:
             return None
