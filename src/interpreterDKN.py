@@ -6,6 +6,7 @@ Ejecutar desde el directorio del proyecto (donde están los .py generados por AN
 
 import mathDKN
 import matrixDKN
+from heapDKN import DKNMemoryError, HeapManager
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from grammarDKNLexer import grammarDKNLexer
@@ -43,10 +44,120 @@ class CollectingErrorListener(ErrorListener):
 class EvalVisitor(grammarDKNVisitor):
     """Visitor que evalúa expresiones y ejecuta sentencias."""
 
-    def __init__(self):
-        self.variables = {}
+    def __init__(self, heap_slots: int = 1024, instruction_limit: int = 1_000_000):
+        self.heap = HeapManager(heap_slots)
+        # Cada ámbito mapea nombre -> dirección (puntero) en el heap.
+        self.scopes: list[dict[str, str]] = [{}]
+        self.functions = {}
         self._returned = False
         self.return_value = None
+        self._instr_count = 0
+        self._instr_limit = instruction_limit
+
+    def _bump_instruction(self, cost: int = 1) -> None:
+        """Execution guard: evita bucles infinitos / ejecución excesiva."""
+        self._instr_count += cost
+        if self._instr_count > self._instr_limit:
+            raise DKNRuntimeError(
+                "Timeout/Infinite Loop detected (límite de operaciones de ejecución excedido)."
+            )
+
+    def _push_scope(self):
+        self.scopes.append({})
+
+    def _pop_scope(self):
+        if len(self.scopes) <= 1:
+            raise DKNRuntimeError("Error interno: no se puede cerrar el ámbito global.")
+        dead = self.scopes.pop()
+        for _name, addr in dead.items():
+            self.heap.free(addr)
+
+    def _lookup_var(self, name):
+        for d in reversed(self.scopes):
+            if name in d:
+                addr = d[name]
+                try:
+                    return self.heap.read(addr)
+                except KeyError:
+                    raise DKNRuntimeError(
+                        f"Error Semántico: puntero inválido o memoria liberada para '{name}'."
+                    ) from None
+        raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
+
+    def _lookup_ptr(self, name):
+        for d in reversed(self.scopes):
+            if name in d:
+                return d[name]
+        return None
+
+    def _lookup_var_optional(self, name):
+        for d in reversed(self.scopes):
+            if name in d:
+                addr = d[name]
+                try:
+                    return self.heap.read(addr)
+                except KeyError:
+                    raise DKNRuntimeError(
+                        f"Error Semántico: puntero inválido o memoria liberada para '{name}'."
+                    ) from None
+        return None
+
+    def _assign_var(self, name, value):
+        new_addr = self.heap.allocate(value)
+        for d in reversed(self.scopes):
+            if name in d:
+                old_addr = d[name]
+                d[name] = new_addr
+                self.heap.free(old_addr)
+                return self.heap.read(new_addr)
+        self.scopes[-1][name] = new_addr
+        return self.heap.read(new_addr)
+
+    def _require_str(self, value, what="texto"):
+        if not isinstance(value, str):
+            raise DKNRuntimeError(f"Tipo de dato inválido: Se esperaba un string ({what}).")
+        return value
+
+    def _to_bool(self, value):
+        """Truthiness estilo Python: 0/vacío/None -> False; resto -> True."""
+        return bool(value)
+
+    def _type_name(self, value):
+        if value is None:
+            return "none"
+        if isinstance(value, bool):
+            return "bool"
+        if isinstance(value, int):
+            return "int"
+        if isinstance(value, float):
+            return "float"
+        if isinstance(value, str):
+            return "str"
+        if matrixDKN.is_matrix(value):
+            return "matrix"
+        if isinstance(value, list):
+            return "list"
+        return type(value).__name__
+
+    def _matches_type(self, value, type_name: str):
+        t = type_name.lower()
+        if t in ("number", "numeric"):
+            return isinstance(value, (int, float))
+        if t in ("int", "integer"):
+            return isinstance(value, int) and not isinstance(value, bool)
+        if t in ("float",):
+            return isinstance(value, float)
+        if t in ("bool", "boolean"):
+            return isinstance(value, bool)
+        if t in ("str", "string", "text"):
+            return isinstance(value, str)
+        if t in ("list",):
+            return isinstance(value, list) and not matrixDKN.is_matrix(value)
+        if t in ("matrix",):
+            return matrixDKN.is_matrix(value)
+        if t in ("none", "null"):
+            return value is None
+        return False
 
     def _expr0(self, ctx):
         """
@@ -69,14 +180,39 @@ class EvalVisitor(grammarDKNVisitor):
             raise DKNRuntimeError("Operación inválida: El resultado es un valor indeterminado (NaN).")
         return value
 
-    def _is_matrix2x2(self, v):
-        return matrixDKN.is_matrix_2x2(v)
+    def _is_matrix(self, v):
+        return matrixDKN.is_matrix(v)
 
     def visitProgram(self, ctx):
-        for st in ctx.statement():
+        for item in ctx.programItem():
             if self._returned:
                 break
-            self.visit(st)
+            self.visit(item)
+        return None
+
+    def visitItemFunc(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
+        self.visit(ctx.functionDef())
+        return None
+
+    def visitItemStmt(self, ctx):
+        if self._returned:
+            return None
+        self.visit(ctx.statement())
+        return None
+
+    def visitFunctionDefRule(self, ctx):
+        toks = ctx.VARIABLE()
+        if toks is None:
+            raise DKNRuntimeError("Definición de función inválida: falta el nombre.")
+        if not isinstance(toks, list):
+            toks = [toks]
+        names = [t.getText() for t in toks]
+        fname = names[0]
+        params = names[1:]
+        self.functions[fname] = {"params": params, "statements": list(ctx.statement())}
         return None
 
     def visitStatement(self, ctx):
@@ -88,6 +224,7 @@ class EvalVisitor(grammarDKNVisitor):
     def visitPrintExpr(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         val = self.visit(self._expr0(ctx))
         if val is not None:
             print(val)
@@ -96,38 +233,72 @@ class EvalVisitor(grammarDKNVisitor):
     def visitAsignacion(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         name = ctx.VARIABLE().getText()
         value = self.visit(self._expr0(ctx))
-        self.variables[name] = value
-        return value
+        return self._assign_var(name, value)
 
     def visitAssignExpr(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         name = ctx.VARIABLE().getText()
         value = self.visit(ctx.expr())
-        self.variables[name] = value
-        return value
+        return self._assign_var(name, value)
+
+    def visitNotExpr(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
+        return not self._to_bool(self.visit(ctx.expr()))
+
+    def visitAndExpr(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
+        left = self.visit(ctx.expr(0))
+        # Cortocircuito: si left es falsy, no evaluar right.
+        if not self._to_bool(left):
+            return False
+        return self._to_bool(self.visit(ctx.expr(1)))
+
+    def visitOrExpr(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
+        left = self.visit(ctx.expr(0))
+        # Cortocircuito: si left es truthy, no evaluar right.
+        if self._to_bool(left):
+            return True
+        return self._to_bool(self.visit(ctx.expr(1)))
 
     def visitIfStmt(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         cond = self.visit(self._expr0(ctx))
         if cond:
             for st in ctx.statement():
                 if self._returned:
                     break
+                self._bump_instruction()
                 self.visit(st)
         return None
 
     def visitWhileStmt(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         # expr ')' '{' statement+ '}'
-        while self.visit(self._expr0(ctx)):
+        while True:
+            self._bump_instruction()
+            if not self.visit(self._expr0(ctx)):
+                break
+            self._bump_instruction()
             for st in ctx.statement():
                 if self._returned:
                     break
+                self._bump_instruction()
                 self.visit(st)
             if self._returned:
                 break
@@ -136,12 +307,18 @@ class EvalVisitor(grammarDKNVisitor):
     def visitForStmt(self, ctx):
         if self._returned:
             return None
+        self._bump_instruction()
         # for '(' expr ';' expr ';' expr ')' '{' statement+ '}'
         self.visit(ctx.expr(0))  # init
-        while self.visit(ctx.expr(1)):
+        while True:
+            self._bump_instruction()
+            if not self.visit(ctx.expr(1)):
+                break
+            self._bump_instruction()
             for st in ctx.statement():
                 if self._returned:
                     break
+                self._bump_instruction()
                 self.visit(st)
             if self._returned:
                 break
@@ -149,23 +326,29 @@ class EvalVisitor(grammarDKNVisitor):
         return None
 
     def visitStackPushStmt(self, ctx):
+        self._bump_instruction()
         name = ctx.VARIABLE().getText()
         val = self.visit(ctx.expr())
-        if name not in self.variables:
-            self.variables[name] = []
-        if not isinstance(self.variables[name], list):
+        cur = self._lookup_var_optional(name)
+        if cur is None:
+            self._assign_var(name, [])
+            cur = self._lookup_var(name)
+        if not isinstance(cur, list):
             raise DKNRuntimeError(f"Error Semántico: '{name}' no es una lista/pila.")
-        self.variables[name].append(val)
+        cur.append(val)
         return None
 
     def visitQueueEnqueueStmt(self, ctx):
+        self._bump_instruction()
         name = ctx.VARIABLE().getText()
         val = self.visit(ctx.expr())
-        if name not in self.variables:
-            self.variables[name] = []
-        if not isinstance(self.variables[name], list):
+        cur = self._lookup_var_optional(name)
+        if cur is None:
+            self._assign_var(name, [])
+            cur = self._lookup_var(name)
+        if not isinstance(cur, list):
             raise DKNRuntimeError(f"Error Semántico: '{name}' no es una lista/cola.")
-        self.variables[name].append(val)
+        cur.append(val)
         return None
 
     def visitExpr(self, ctx):
@@ -179,9 +362,7 @@ class EvalVisitor(grammarDKNVisitor):
         # VARIABLE
         if ctx.VARIABLE():
             name = ctx.VARIABLE().getText()
-            if name not in self.variables:
-                raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
-            return self.variables[name]
+            return self._lookup_var(name)
         # expr op expr (binario)
         if ctx.expr() and len(ctx.expr()) == 2:
             left = self.visit(ctx.expr(0))
@@ -220,16 +401,139 @@ class EvalVisitor(grammarDKNVisitor):
 
     def visitVar(self, ctx):
         name = ctx.VARIABLE().getText()
-        if name not in self.variables:
-            raise DKNRuntimeError(f"Error Semántico: La variable '{name}' no ha sido declarada.")
-        return self.variables[name]
+        return self._lookup_var(name)
 
     def visitStringLiteral(self, ctx):
         raw = ctx.STRING().getText()
         # Quitar comillas de los extremos y desescapar \"
         inner = raw[1:-1].replace('\\"', '"')
         return inner
+
+    def visitParens(self, ctx):
         return self.visit(ctx.expr())
+
+    def visitFuncCall(self, ctx):
+        self._bump_instruction()
+        name = ctx.VARIABLE().getText()
+        arg_exprs = ctx.expr()
+
+        if name == "isinstance":
+            if not arg_exprs or len(arg_exprs) != 2:
+                raise DKNRuntimeError("isinstance(x, tipo) requiere exactamente dos argumentos.")
+            val = self.visit(arg_exprs[0])
+            raw_type = arg_exprs[1].getText().strip()
+            if raw_type.startswith('"') and raw_type.endswith('"'):
+                raw_type = raw_type[1:-1].replace('\\"', '"')
+            return self._matches_type(val, raw_type)
+
+        args = [self.visit(e) for e in arg_exprs] if arg_exprs else []
+
+        if name == "len":
+            if len(args) != 1:
+                raise DKNRuntimeError("len(x) requiere exactamente un argumento.")
+            if not isinstance(args[0], list):
+                raise DKNRuntimeError("len(x) solo admite listas/matrices.")
+            return len(args[0])
+
+        if name == "type":
+            if len(args) != 1:
+                raise DKNRuntimeError("type(x) requiere exactamente un argumento.")
+            return self._type_name(args[0])
+
+        if name == "dump_memory":
+            if len(args) != 0:
+                raise DKNRuntimeError("dump_memory() no recibe argumentos.")
+            dump = self.heap.dump_state()
+            print(dump)
+            return None
+
+        if name == "id":
+            if len(args) != 1:
+                raise DKNRuntimeError("id(x) requiere exactamente un argumento.")
+            raw = arg_exprs[0].getText().strip() if arg_exprs else ""
+            ptr = self._lookup_ptr(raw) if raw else None
+            if ptr is not None:
+                return ptr
+            return hex(id(args[0]))
+
+        if name == "dir":
+            if len(args) != 1:
+                raise DKNRuntimeError("dir(x) requiere exactamente un argumento.")
+            return sorted(dir(args[0]))
+
+        if name == "help":
+            if len(args) != 1:
+                raise DKNRuntimeError("help(x) requiere exactamente un argumento.")
+            doc = getattr(args[0], "__doc__", None)
+            return doc.strip() if isinstance(doc, str) else "No hay documentación disponible."
+
+        if name == "repr":
+            if len(args) != 1:
+                raise DKNRuntimeError("repr(x) requiere exactamente un argumento.")
+            return repr(args[0])
+
+        if name == "str":
+            if len(args) != 1:
+                raise DKNRuntimeError("str(x) requiere exactamente un argumento.")
+            return str(args[0])
+
+        if name == "print":
+            if len(args) != 1:
+                raise DKNRuntimeError("print(x) requiere exactamente un argumento.")
+            print(args[0])
+            return None
+
+        if name == "read":
+            if len(args) != 1:
+                raise DKNRuntimeError("read(ruta) requiere exactamente un argumento (string).")
+            path = self._require_str(args[0], "ruta")
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            except OSError as e:
+                raise DKNRuntimeError(f"No se pudo leer el archivo: {e}") from e
+
+        if name == "write":
+            if len(args) != 2:
+                raise DKNRuntimeError("write(ruta, contenido) requiere exactamente dos argumentos (strings).")
+            path = self._require_str(args[0], "ruta")
+            content = self._require_str(args[1], "contenido")
+            try:
+                with open(path, "w", encoding="utf-8", newline="") as f:
+                    f.write(content)
+            except OSError as e:
+                raise DKNRuntimeError(f"No se pudo escribir el archivo: {e}") from e
+            return None
+
+        if name not in self.functions:
+            raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")
+
+        fd = self.functions[name]
+        params = fd["params"]
+        if len(args) != len(params):
+            raise DKNRuntimeError(
+                f"Error Semántico: La función '{name}' espera {len(params)} argumento(s), se recibieron {len(args)}."
+            )
+
+        saved_ret = self._returned
+        saved_val = self.return_value
+        self._returned = False
+        self.return_value = None
+        self._push_scope()
+        result = None
+        try:
+            for pname, val in zip(params, args):
+                self._assign_var(pname, val)
+            for st in fd["statements"]:
+                if self._returned:
+                    break
+                self.visit(st)
+            result = self.return_value if self._returned else None
+        finally:
+            self._pop_scope()
+            self._returned = saved_ret
+            self.return_value = saved_val
+        return result
 
     def visitSinFunc(self, ctx):
         return mathDKN.sin(self._require_number(self.visit(ctx.expr())))
@@ -287,32 +591,34 @@ class EvalVisitor(grammarDKNVisitor):
     def visitMatrixTrans(self, ctx):
         m = self.visit(ctx.expr())
         try:
-            return matrixDKN.matrix_transpose_2x2(m)
+            return matrixDKN.matrix_transpose(m)
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitMatrixInv(self, ctx):
         m = self.visit(ctx.expr())
         try:
-            return matrixDKN.matrix_inv_2x2(m)
+            return matrixDKN.matrix_inv(m)
         except ValueError as e:
             raise DKNRuntimeError(str(e))
 
     def visitStackPop(self, ctx):
         name = ctx.VARIABLE().getText()
-        if name not in self.variables or not isinstance(self.variables[name], list):
+        lst = self._lookup_var_optional(name)
+        if lst is None or not isinstance(lst, list):
             raise DKNRuntimeError(f"Error Semántico: La pila '{name}' no existe o no es una lista.")
-        if not self.variables[name]:
+        if not lst:
             raise DKNRuntimeError(f"Error: La pila '{name}' está vacía.")
-        return self.variables[name].pop()
+        return lst.pop()
 
     def visitQueueDequeue(self, ctx):
         name = ctx.VARIABLE().getText()
-        if name not in self.variables or not isinstance(self.variables[name], list):
+        lst = self._lookup_var_optional(name)
+        if lst is None or not isinstance(lst, list):
             raise DKNRuntimeError(f"Error Semántico: La cola '{name}' no existe o no es una lista.")
-        if not self.variables[name]:
+        if not lst:
             raise DKNRuntimeError(f"Error: La cola '{name}' está vacía.")
-        return self.variables[name].pop(0)
+        return lst.pop(0)
 
     def visitListLiteral(self, ctx):
         values = []
@@ -337,11 +643,11 @@ class EvalVisitor(grammarDKNVisitor):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
         op = ctx.op.text
-        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
-            if not (self._is_matrix2x2(left) and self._is_matrix2x2(right)):
+        if self._is_matrix(left) or self._is_matrix(right):
+            if not (self._is_matrix(left) and self._is_matrix(right)):
                 raise DKNRuntimeError("Error de Dominio: No se puede sumar/restar matriz con escalar.")
             try:
-                return matrixDKN.matrix_add_2x2(left, right) if op == '+' else matrixDKN.matrix_sub_2x2(left, right)
+                return matrixDKN.matrix_add(left, right) if op == '+' else matrixDKN.matrix_sub(left, right)
             except ValueError as e:
                 raise DKNRuntimeError(str(e))
         left = self._require_number(left)
@@ -354,14 +660,14 @@ class EvalVisitor(grammarDKNVisitor):
         right = self.visit(ctx.expr(1))
         op = ctx.op.text
         if op == '*':
-            if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+            if self._is_matrix(left) or self._is_matrix(right):
                 try:
-                    if self._is_matrix2x2(left) and self._is_matrix2x2(right):
-                        return matrixDKN.matrix_mul_2x2(left, right)
-                    if self._is_matrix2x2(left) and isinstance(right, (int, float)):
-                        return matrixDKN.matrix_scalar_mul_2x2(left, right)
-                    if self._is_matrix2x2(right) and isinstance(left, (int, float)):
-                        return matrixDKN.matrix_scalar_mul_2x2(right, left)
+                    if self._is_matrix(left) and self._is_matrix(right):
+                        return matrixDKN.matrix_mul(left, right)
+                    if self._is_matrix(left) and isinstance(right, (int, float)):
+                        return matrixDKN.matrix_scalar_mul(left, right)
+                    if self._is_matrix(right) and isinstance(left, (int, float)):
+                        return matrixDKN.matrix_scalar_mul(right, left)
                     raise DKNRuntimeError("Error de Dominio: multiplicación inválida con matrices.")
                 except ValueError as e:
                     raise DKNRuntimeError(str(e))
@@ -369,7 +675,7 @@ class EvalVisitor(grammarDKNVisitor):
             right = self._require_number(right)
             return self._reject_nan(left * right)
         if op == '/':
-            if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+            if self._is_matrix(left) or self._is_matrix(right):
                 raise DKNRuntimeError("Error de Dominio: división no soportada para matrices.")
             left = self._require_number(left)
             right = self._require_number(right)
@@ -380,7 +686,7 @@ class EvalVisitor(grammarDKNVisitor):
             except OverflowError:
                 raise DKNRuntimeError("Error de Desbordamiento: El resultado es demasiado grande para ser procesado.")
         # '%'
-        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+        if self._is_matrix(left) or self._is_matrix(right):
             raise DKNRuntimeError("Error de Dominio: módulo no soportado para matrices.")
         left = self._require_number(left)
         right = self._require_number(right)
@@ -393,7 +699,7 @@ class EvalVisitor(grammarDKNVisitor):
         right = self.visit(ctx.expr(1))
         op = ctx.op.text if hasattr(ctx, "op") else ctx.getChild(1).getText()
 
-        if self._is_matrix2x2(left) or self._is_matrix2x2(right):
+        if self._is_matrix(left) or self._is_matrix(right):
             raise DKNRuntimeError("Error de Dominio: comparación no soportada para matrices.")
 
         if op in ("==", "!="):
@@ -426,17 +732,22 @@ class EvalVisitor(grammarDKNVisitor):
 
     # Llamado por el parser cuando existe la etiqueta # PrintCommand.
     def visitPrintCommand(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
         val = self.visit(self._expr0(ctx))
         print(val)
         return None
 
     # Llamado por el parser cuando existe la etiqueta # ReturnStmt.
     def visitReturnStmt(self, ctx):
+        self._bump_instruction()
         self.return_value = self.visit(self._expr0(ctx))
         self._returned = True
         return self.return_value
 
     def visitReturnVoid(self, ctx):
+        self._bump_instruction()
         self.return_value = None
         self._returned = True
         return None
@@ -471,7 +782,7 @@ class EvalVisitor(grammarDKNVisitor):
 
     # (visitPotencia ya está implementado arriba con validaciones)
 
-def run(code: str):
+def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000):
     """Analiza y ejecuta código del DSL."""
     input_stream = InputStream(code)
     lexer = grammarDKNLexer(input_stream)
@@ -496,7 +807,7 @@ def run(code: str):
     parser.addErrorListener(parser_err)
 
     tree = parser.program()
-    visitor = EvalVisitor()
+    visitor = EvalVisitor(heap_slots=heap_slots, instruction_limit=instruction_limit)
     if lexer_err.errors or parser_err.errors:
         errors = lexer_err.errors + parser_err.errors
         raise DKNParseError("\n".join(errors))
@@ -504,7 +815,7 @@ def run(code: str):
     try:
         visitor.visit(tree)
         return visitor.return_value if visitor._returned else None
-    except DKNRuntimeError:
+    except (DKNRuntimeError, DKNMemoryError):
         raise
 
 
@@ -521,7 +832,7 @@ def start_repl():
                     if ret is not None:
                         print(ret)
                     print(">>> Ejecutado.")
-                except (DKNParseError, DKNRuntimeError) as e:
+                except (DKNParseError, DKNRuntimeError, DKNMemoryError) as e:
                     print("Error:", e)
                 buf = []
             elif line == "":
@@ -552,7 +863,7 @@ def main():
             print("--- Fin de ejecución ---\n")
         except FileNotFoundError:
             print(f"Error: No se encontró el archivo '{path}'.")
-        except (DKNParseError, DKNRuntimeError) as e:
+        except (DKNParseError, DKNRuntimeError, DKNMemoryError) as e:
             print("Error durante la ejecución:", e)
         except Exception as e:
             print("Ocurrió un error inesperado:", e)

@@ -56,11 +56,15 @@ def cos(x):
     return term
 
 def tan(x):
-    """Tangente = seno / coseno. Indefinida cuando cos(x) = 0."""
+    """Tangente con blindaje para PI/2."""
+    # Normalizamos el ángulo al rango [0, PI] para detectar múltiplos de PI/2
+    x_norm = x % PI
+    if abs(x_norm - (PI / 2)) < 1e-10:
+        raise ValueError("Error de dominio: Tangente indefinida en múltiplos de PI/2.")
+
     c = cos(x)
-    # Umbral para evitar problemas numéricos cerca de 0
-    if -1e-12 < c < 1e-12:
-        raise ValueError("Error de dominio: Tangente indefinida (división por cero en coseno).")
+    if abs(c) < 1e-12:  # Blindaje extra por si falla lo anterior
+        raise ValueError("Error de dominio: División por cero en coseno.")
     return sin(x) / c
 
 

@@ -2,7 +2,16 @@ grammar grammarDKN;
 
 // Definiciones del lenguaje
 
-program: statement+;
+program: programItem+;
+
+programItem
+    : functionDef # ItemFunc
+    | statement   # ItemStmt
+    ;
+
+functionDef
+    : FUNCTION VARIABLE '(' (VARIABLE (',' VARIABLE)*)? ')' '{' statement+ '}' # FunctionDefRule
+    ;
 
 statement
     : 'print' '(' expr ')' ';'                                      # PrintCommand
@@ -21,14 +30,17 @@ statement
 // Orden: suma/resta < mult/div < potencia.
 expr
     // NOTA ANTLR: en recursión izquierda, el orden aquí define la precedencia.
-    // Para que ^ tenga más prioridad que * y que +, se coloca primero.
-    : expr '^' expr                     # Potencia
+    // Unarios y paréntesis primero para máxima prioridad.
+    : 'not' expr                        # NotExpr
+    | '-' expr                          # UnaryMinus
+    | '(' expr ')'                      # Parens
+    | expr '^' expr                     # Potencia
     | expr op=('*'|'/'|'%') expr        # MulDivMod
     | expr op=('+'|'-') expr            # SumaResta
     | expr op=('<'|'>'|'<='|'>='|'=='|'!=') expr  # Comparacion
+    | expr 'and' expr                   # AndExpr
+    | expr 'or' expr                    # OrExpr
     | VARIABLE '=' expr                 # AssignExpr
-    | '-' expr                          # UnaryMinus
-    | '(' expr ')'                      # Parens
     | 'sin' '(' expr ')'                # SinFunc
     | 'cos' '(' expr ')'                # CosFunc
     | 'tan' '(' expr ')'                # TanFunc
@@ -50,6 +62,7 @@ expr
     | INF                               # InfConst
     | NUMBER                            # Num
     | STRING                            # StringLiteral
+    | VARIABLE '(' (expr (',' expr)*)? ')'  # FuncCall
     | VARIABLE                          # Var
     ;
 
@@ -62,6 +75,9 @@ INVALID_ID: [0-9]+ [a-zA-Z_][a-zA-Z0-9_]*;
 
 // Comentarios de línea: se ignoran completamente
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
+
+// Palabra reservada (debe ir antes de VARIABLE para no lexearla como identificador)
+FUNCTION: 'function';
 
 // Constantes reservadas (case-insensitive)
 PI: [pP][iI];
