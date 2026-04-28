@@ -1,0 +1,43 @@
+// --- 1. PRUEBA DE PILAS (LIFO: Último en entrar, Primero en salir) ---
+print("--- Prueba de Pilas (Stack) ---");
+push(miPila, 10);
+push(miPila, 20);
+push(miPila, 30);
+
+print("Estado actual (debería ser la pila en memoria):");
+print(miPila);
+
+print("Haciendo POP (debería sacar 30):");
+print(pop(miPila));
+print("Haciendo POP (debería sacar 20):");
+print(pop(miPila));
+
+
+// --- 2. PRUEBA DE COLAS (FIFO: Primero en entrar, Primero en salir) ---
+print("--- Prueba de Colas (Queue) ---");
+enqueue(miCola, "Cliente A");
+enqueue(miCola, "Cliente B");
+enqueue(miCola, "Cliente C");
+
+print("Atendiendo (debería salir Cliente A):");
+print(dequeue(miCola));
+print("Atendiendo (debería salir Cliente B):");
+print(dequeue(miCola));
+
+
+// --- 3. PRUEBAS DE ESTRÉS (Haciendo que explote) ---
+print("--- PRUEBAS DE RESILIENCIA ---");
+
+// Explosión 1: Pop a una pila vacía (Underflow)
+// Descomenta la siguiente línea para forzar el error
+// pop(miPila); // Sacamos el 10
+// pop(miPila); // ERROR: La pila 'miPila' está vacía.
+
+// Explosión 2: Intentar hacer push a una variable que no es lista
+// Descomenta las siguientes líneas para forzar el error
+// numero = 5;
+// push(numero, 10); // ERROR: 'numero' no es una lista/pila.
+
+// Explosión 3: Leer una estructura no inicializada
+// Descomenta la siguiente línea para forzar el error
+// pop(pilaFantasma); // ERROR: La pila 'pilaFantasma' no existe.

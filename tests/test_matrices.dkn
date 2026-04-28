@@ -1,0 +1,41 @@
+// --- 1. CREACIÓN Y OPERACIONES BÁSICAS (2x2) ---
+print("--- Operaciones con Matrices 2x2 ---");
+A = [[1, 2], [3, 4]];
+B = [[5, 6], [7, 8]];
+
+print("Suma (A + B):");
+print(A + B);
+
+print("Multiplicación matricial (A * B):");
+print(A * B);
+
+print("Multiplicación por escalar (A * 10):");
+print(A * 10);
+
+print("Transpuesta de A:");
+print(trans(A));
+
+print("Inversa de A:");
+print(inv(A));
+
+// --- 2. MATRICES DINÁMICAS (3x3) ---
+print("--- Operaciones con Matrices 3x3 ---");
+M3 = [[1, 2, 3], [0, 1, 4], [5, 6, 0]];
+print("Inversa de Matriz 3x3:");
+print(inv(M3));
+
+// --- 3. PRUEBAS DE ESTRÉS (Haciendo que explote) ---
+print("--- PRUEBAS DE RESILIENCIA ---");
+
+// Explosión 1: Sumar matrices de diferente tamaño
+// Descomenta la siguiente línea para ver el error de dominio
+// C = A + M3; 
+
+// Explosión 2: Inversa de una Matriz Singular (Determinante 0)
+// Descomenta las siguientes líneas para ver el error
+// Singular = [[1, 1], [1, 1]];
+// print(inv(Singular));
+
+// Explosión 3: Intentar dividir una matriz (no soportado)
+// Descomenta la siguiente línea para ver el error
+// print(A / 2);

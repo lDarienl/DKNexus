@@ -1,0 +1,19 @@
+// 1. Demostración de Recursividad y Scope
+print("--- Calculando Factorial (Recursión) ---");
+
+function factorial(n) {
+    if (n <= 1) {
+        return 1;
+    }
+    // Llamada recursiva
+    return n * factorial(n - 1);
+}
+
+// Variable global
+resultado = factorial(5);
+print("El factorial de 5 es:");
+print(resultado);
+
+print("--- Estado de la memoria ---");
+// Si agregaste dump_memory(), esto demostrará que la memoria se limpió correctamente
+dump_memory();

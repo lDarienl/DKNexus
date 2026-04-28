@@ -1,0 +1,13 @@
+// 4. Prueba de Estrés (Bucle Infinito)
+print("Iniciando un bucle infinito malicioso...");
+
+x = 1;
+// Esto colgaría cualquier intérprete básico
+while (x > 0) {
+    // No hacemos nada, solo consumir ciclos
+    x = x + 1 - 1; 
+}
+
+// El código nunca llegará aquí porque tu Execution Guard 
+// lanzará el error "Timeout/Infinite Loop detected" al llegar al millón de instrucciones.
+print("Esto nunca se imprimirá");

@@ -1,0 +1,18 @@
+// 2. Demostración de Archivos
+print("--- Escribiendo archivo ---");
+mensaje = "Este es un log generado por DKNexus.";
+write("log_prueba.txt", mensaje);
+print("Archivo 'log_prueba.txt' creado exitosamente.");
+
+print("--- Leyendo archivo ---");
+contenido = read("log_prueba.txt");
+print("Contenido leído:");
+print(contenido);
+
+print("--- Verificación de Tipos ---");
+print("Tipo del contenido leído:");
+print(type(contenido)); // Debería imprimir 'str'
+
+matriz_prueba = [[1, 2], [3, 4]];
+print("Tipo de una matriz:");
+print(type(matriz_prueba)); // Debería imprimir 'matrix'

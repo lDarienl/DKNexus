@@ -1,0 +1,21 @@
+// 3. Demostración de Ciclos y Lógica
+print("--- Buscando el primer par mayor a 50 ---");
+
+encontrado = 0; // Usado como booleano falso
+
+for (i = 1; i <= 100; i = i + 1) {
+    // Uso de and y not
+    if (i > 50 and i % 2 == 0 and not encontrado) {
+        print("Número encontrado:");
+        print(i);
+        encontrado = 1; // Verdadero
+    }
+}
+
+print("--- Prueba de Bucle While ---");
+contador = 0;
+while (contador < 3) {
+    print("Iteración:");
+    print(contador);
+    contador = contador + 1;
+}

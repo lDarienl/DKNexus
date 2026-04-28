@@ -1,4 +1,4 @@
-# Generated from c:/Users/Darie/Documents/Uni/Semestre V/Lenguajes de Programacion y Transduccion/DKNexus/grammar/grammarDKN.g4 by ANTLR 4.13.2
+# Generated from grammarDKN.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .grammarDKNParser import grammarDKNParser
@@ -79,6 +79,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by grammarDKNParser#AndExpr.
+    def visitAndExpr(self, ctx:grammarDKNParser.AndExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by grammarDKNParser#TanhFunc.
     def visitTanhFunc(self, ctx:grammarDKNParser.TanhFuncContext):
         return self.visitChildren(ctx)
@@ -149,6 +154,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by grammarDKNParser#NotExpr.
+    def visitNotExpr(self, ctx:grammarDKNParser.NotExprContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by grammarDKNParser#SinFunc.
     def visitSinFunc(self, ctx:grammarDKNParser.SinFuncContext):
         return self.visitChildren(ctx)
@@ -186,6 +196,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by grammarDKNParser#CosFunc.
     def visitCosFunc(self, ctx:grammarDKNParser.CosFuncContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by grammarDKNParser#OrExpr.
+    def visitOrExpr(self, ctx:grammarDKNParser.OrExprContext):
         return self.visitChildren(ctx)
 
 
