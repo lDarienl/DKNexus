@@ -1,368 +1,304 @@
-# DKNexus
+# DKNexus DSL
 
-Lenguaje de dominio específico (DSL) para experimentos de **Deep Learning / cálculo numérico**, implementado con:
+**DKNexus** es un **Lenguaje de Dominio Específico (DSL)** orientado a flujos de trabajo de **Deep Learning y cómputo numérico**, construido con:
 
-- **ANTLR v4** para la gramática y el parser.
-- **Python 3** para el intérprete, usando el patrón **Visitor**.
-- Librerías propias: `mathDKN.py` (math), `matrixDKN.py` (matrices).
+- **ANTLR4** para análisis léxico/sintáctico.
+- **Python 3** para el intérprete (`Visitor`).
+- Librerías matemáticas propias sin dependencias externas de álgebra/cálculo.
 
-El proyecto está configurado para trabajar **solo con el target Python3** (sin Flex/Bison, sin NumPy, sin librerías externas de terceros).
+Este documento describe la implementación completa hasta el **Segundo Corte**.
 
 ---
 
-## 1. Estructura del proyecto
+## Introducción y Propósito
 
-La estructura es:
+DKNexus nace para ejecutar programas numéricos con:
+
+1. **Semántica controlada** (gramática fija y validación estricta).
+2. **Gestión explícita de memoria** (Heap y punteros).
+3. **Portabilidad** (cero dependencia de `math`/`numpy` para la base del lenguaje).
+4. **Valor educativo** (algoritmos implementados desde cero).
+
+Su objetivo académico es demostrar cómo construir un DSL robusto para problemas cercanos a Deep Learning (operaciones numéricas, álgebra lineal, control de flujo y estructuras de datos) sin delegar toda la complejidad al runtime de Python.
+
+---
+
+## Arquitectura de Memoria (Heap + Punteros)
+
+La capa más fuerte de DKNexus es su modelo de memoria manual:
+
+| Componente | Rol |
+|---|---|
+| `HeapManager` (`src/heapDKN.py`) | Simula RAM con direcciones hex (`0x001`, `0x002`, ...) |
+| `self.scopes` | Pila de ámbitos; cada variable guarda un **puntero** (no el valor directo) |
+| `_assign_var` | Reserva en heap, guarda valor, devuelve/actualiza dirección |
+| `_lookup_var` | Resuelve nombre -> puntero -> valor en heap |
+| `_pop_scope` | Libera automáticamente celdas del ámbito que muere |
+
+### ¿Por qué este modelo?
+
+No se delega el control total al recolector de Python. Este enfoque permite:
+
+- comportamiento más **determinista** de recursos,
+- trazabilidad de referencias activas,
+- validación de presión de memoria por **slots**,
+- simulación realista de un runtime de lenguaje.
+
+### Pila de Ámbitos (Scope Stack)
+
+El intérprete mantiene una pila:
+
+```text
+scopes = [
+  { ... global ... },
+  { ... función actual ... },
+  ...
+]
+```
+
+- Al entrar a función: `_push_scope()`
+- Al salir: `_pop_scope()`
+- La búsqueda de variables es de adentro hacia afuera (resolución léxica anidada).
+
+Esto habilita recursividad y aislamiento local/global.
+
+### Gestión por slots y liberación
+
+El heap tiene límite configurable (por defecto 1024 slots):
+
+- número/bool/None: `1` slot
+- matriz: `filas * columnas` slots
+- string/lista: peso derivado del contenido
+
+Si no hay espacio, se lanza **`DKNMemoryError`**.
+
+Al destruir un scope, sus direcciones se liberan en `_pop_scope` (GC básico por vida de ámbito).
+
+---
+
+## Librerías Nativas (Cero dependencias externas)
+
+### `mathDKN.py` (sin `import math`)
+
+La librería matemática base se implementa a mano para controlar precisión/errores:
+
+- trigonometría por **Series de Taylor** (`sin`, `cos`, `tan`, `tanh`)
+- raíces por **Newton-Raphson** (`sqrt`)
+- logaritmos y exponenciales por aproximaciones numéricas (`log`, `log10`, `exp`)
+- constantes propias (`PI`, `E`, `INF`)
+
+Se incorporan validaciones de dominio (ej. blindaje de tangente cerca de `PI/2`).
+
+### `matrixDKN.py` (sin NumPy)
+
+Álgebra lineal implementada desde cero con matrices **dinámicas `n x m`**:
+
+- validación estructural (`matrix_dimensions`, `is_matrix`)
+- suma/resta matricial
+- multiplicación matricial y escalar
+- transpuesta
+- inversa para matriz cuadrada por **Gauss-Jordan**
+
+Este enfoque es clave para comprender cómo se propagan tensores/matrices sin abstracciones externas.
+
+---
+
+## Resiliencia y Seguridad (Execution Guard)
+
+DKNexus incorpora un guardián de ejecución para proteger la máquina host:
+
+| Mecanismo | Descripción |
+|---|---|
+| Contador global de instrucciones | Se incrementa por visita/nodo crítico del AST |
+| Límite configurable (`instruction_limit`) | Corta ejecución excesiva |
+| Excepción de protección | `DKNRuntimeError` con mensaje de timeout/bucle infinito |
+
+Esto evita loops no acotados que saturen CPU, especialmente en `while` y `for`.
+
+### Jerarquía práctica de errores
+
+| Error | Contexto |
+|---|---|
+| `DKNParseError` | Errores léxicos/sintácticos |
+| `DKNRuntimeError` | Errores semánticos o de ejecución |
+| `DKNMemoryError` | Heap sin slots / objeto no alojable |
+
+---
+
+## Componentes del Lenguaje
+
+### 1) Lógica
+
+- Operadores lógicos: `and`, `or`, `not`
+- Cortocircuito en `and`/`or`
+- Truthiness estilo Python (`0`, vacío y `None` son falso; resto verdadero)
+
+### 2) Control de flujo
+
+- `if (...) { ... }`
+- `while (...) { ... }`
+- `for (init; cond; update) { ... }`
+
+> Nota: el núcleo actual implementa `if`; los flujos tipo `if/else` se modelan con composición de condiciones y bloques.
+
+### 3) Estructuras de datos
+
+- **Pilas (LIFO)**: `push`, `pop`
+- **Colas (FIFO)**: `enqueue`, `dequeue`
+- **Listas** y **matrices** como literales
+
+### 4) I/O y utilidades nativas
+
+- Archivos: `read(ruta)`, `write(ruta, contenido)`
+- Introspección/runtime:
+  - `len(x)`
+  - `type(x)`
+  - `dump_memory()`
+  - `id(x)`
+  - `isinstance(x, tipo)`
+  - `dir(x)`
+  - `help(x)`
+  - `repr(x)`
+  - `str(x)`
+  - `print(x)`
+
+### 5) Funciones de usuario
+
+Definición:
+
+```dkn
+function nombre(p1, p2) {
+    // statements
+    return p1 + p2;
+}
+```
+
+Llamada:
+
+```dkn
+print(nombre(10, 20));
+```
+
+---
+
+## Justificación Técnica
+
+DKNexus es sólido para el Segundo Corte por tres razones:
+
+1. **Control explícito de recursos**  
+   El runtime administra su heap con punteros y cuotas de memoria.
+
+2. **Seguridad de ejecución**  
+   El guardián de instrucciones previene bucles infinitos y abuso de CPU.
+
+3. **Profundidad educativa**  
+   Algoritmos matemáticos y matriciales implementados manualmente facilitan comprender la mecánica real detrás de bibliotecas de alto nivel.
+
+---
+
+## Arquitectura del Proyecto
 
 ```text
 DKNexus/
-  README.md
-  requirements.txt
-  build.sh
-  build.bat
-  .gitignore
-
-  grammar/
-    grammarDKN.g4
-
-  src/
-    __init__.py           (puede estar vacío)
-    interpreterDKN.py
-    mathDKN.py
-    matrixDKN.py
-    grammarDKNLexer.py
-    grammarDKNParser.py
-    grammarDKNVisitor.py
-    grammarDKNBaseVisitor.py
-
-  tests/
-    ejemplos_basicos.dkn
-    matrices.dkn
-    pilas_colas.dkn
-    errores.dkn
-    ...
-```
-
-- **`grammar/`**: gramática ANTLR (`grammarDKN.g4`).
-- **`src/`**: todo el código Python del lenguaje (intérprete + librerías + archivos generados por ANTLR).
-- **`tests/`**: programas de prueba escritos en el DSL (`*.dkn`).
-
-> Nota: Si los `.py` generados por ANTLR (`grammarDKN*.py`) están en la raíz, muévelos a `src/` después de correr `build.sh`/`build.bat`.
-
----
-
-## 2. Qué soporta el DSL
-
-### 2.1. Aritmética y constantes
-
-- **Operadores**: `+ - * / % ^` con precedencia:
-  - `^` (potencia) > `* / %` > `+ -`
-- **Paréntesis**: `(expr)`
-- **Menos unario**: `-expr`
-- **Constantes** (case-insensitive):
-  - `PI`, `Pi`, `pi`, etc. → constante π
-  - `E`, `e` → constante e
-  - `INF`, `Inf`, `inf` → infinito
-
-Ejemplos:
-
-```text
-print(10 + 2 * 5);     // 20
-print((10 + 2) * 5);   // 60
-print(2 ^ 3 + 4);      // 12
-print(PI * 2);
-print(E);
-```
-
-### 2.2. Funciones matemáticas (`mathDKN.py`)
-
-- Trigonometría: `sin(x)`, `cos(x)`, `tan(x)`, `tanh(x)`
-- Raíces y potencias:
-  - `sqrt(x)` – raíz cuadrada
-  - `root(x, y)` – raíz y-ésima de x
-  - `^` – potencia
-- Logaritmos:
-  - `log(x)` – log natural
-  - `log10(x)` – log base 10
-- Misceláneo:
-  - `abs(x)`, `floor(x)`, `ceil(x)`
-
-> Todas implementadas **sin `math` ni NumPy**, usando series / Newton-Raphson / transformaciones.
-
-### 2.3. Variables y control de flujo
-
-- Asignación: `x = expr;`
-- Lectura: `x` en expresiones.
-- Estructuras:
-
-```text
-if (condicion) { ... }
-
-while (condicion) { ... }
-
-for (init; cond; update) { ... }
-```
-
-Ejemplo:
-
-```text
-x = 10;
-if (x - 5) { x = 42; }
-print(x);      // 42
-
-i = 0;
-while (5 - i) { i = i + 1; }
-print(i);      // 5
-```
-
-### 2.4. Return y programa
-
-- `return expr;` – detiene la ejecución y guarda el valor retornado.
-- `return;` – detiene la ejecución sin valor.
-
-En REPL o al ejecutar un archivo, si hay `return expr;` se imprime ese valor al final del bloque/archivo.
-
-### 2.5. Strings
-
-- Literales de string con comillas dobles:
-
-```text
-mensaje = "Hola mundo";
-print(mensaje);
-
-cola = [];
-enqueue(cola, "Primero");
-enqueue(cola, "Segundo");
-print(dequeue(cola));    // "Primero"
-```
-
-Se soporta `\"` dentro de strings para escribir comillas.
-
-### 2.6. Comentarios
-
-- Comentarios de una línea:
-
-```text
-// Comentario de línea
-x = 3; // comentario al final
+├─ grammar/
+│  └─ grammarDKN.g4
+├─ src/
+│  ├─ interpreterDKN.py
+│  ├─ heapDKN.py
+│  ├─ mathDKN.py
+│  ├─ matrixDKN.py
+│  ├─ grammarDKNLexer.py        # generado por ANTLR
+│  ├─ grammarDKNParser.py       # generado por ANTLR
+│  └─ grammarDKNVisitor.py      # generado por ANTLR
+├─ tests/
+│  └─ *.dkn
+└─ README.md
 ```
 
 ---
 
-## 3. Pilas, colas y listas
+## Instrucciones de Uso
 
-Las listas se representan con corchetes:
+## 1) Requisitos
 
-```text
-lista = [1, 2, 3];
-matriz = [[0.5, 0.2], [0.1, 0.8]];
-```
+- Java Runtime (para ANTLR4)
+- Python 3.10+ (recomendado)
+- entorno virtual (`venv`)
 
-### 3.1. Pilas (stack)
-
-- `push(nombre, expr);` → inserta al final (LIFO).
-- `pop(nombre)` → devuelve y elimina el último elemento.
-
-```text
-historial = [];
-push(historial, 0.95);
-push(historial, 0.82);
-ultimo = pop(historial);
-print(ultimo);
-```
-
-### 3.2. Colas (queue)
-
-- `enqueue(nombre, expr);` → inserta al final (FIFO).
-- `dequeue(nombre)` → devuelve y elimina el primer elemento.
-
-```text
-cola = [];
-enqueue(cola, "Primero");
-enqueue(cola, "Segundo");
-print(dequeue(cola));   // "Primero"
-print(dequeue(cola));   // "Segundo"
-```
-
-Errores:
-- Pop/dequeue sobre estructura vacía → error claro.
-- Usar `push/enqueue` sobre variable no lista → error semántico.
-
----
-
-## 4. Matrices 2x2 (`matrixDKN.py`)
-
-Soporte básico de matrices 2x2 (sin NumPy):
-
-- Literales:
-
-```text
-W = [[0.5, 0.2], [0.1, 0.8]];
-I = [[1, 0], [0, 1]];
-```
-
-- Operaciones:
-  - `trans(m)` – transpuesta.
-  - `inv(m)` – inversa (Gauss-Jordan 2x2 cerrada).
-  - `A + B`, `A - B` – suma/resta entre 2x2.
-  - `A * B` – multiplicación de matrices 2x2.
-  - `A * escalar`, `escalar * A` – multiplicación escalar.
-
-Ejemplo:
-
-```text
-W = [[0.5, 0.2], [0.1, 0.8]];
-I = [[1, 0], [0, 1]];
-
-W_T = trans(W);
-H = W * I;
-H_inv = inv(H);
-
-print(H_inv);
-```
-
-Errores:
-- Dimensiones incorrectas → error de dominio.
-- Matriz no 2x2 o singular → error de dominio.
-
----
-
-## 5. Reglas de identificadores
-
-- **Permitido**: `x`, `y2`, `radio10`, `_tmp`, `a1b2`
-- **No permitido**: `1nombre` (un identificador no puede empezar con número).
-
-Si usas algo como `1nombre`, se lanza:
-
-```text
-Error: Identificador inválido '1nombre' en Lx:y. Un identificador no puede empezar con número.
-```
-
----
-
-## 6. Manejo de errores
-
-### 6.1. Matemáticos
-
-- División/módulo:
-  - `a / 0` → `Error: Imposible dividir entre 0.`
-  - `a % 0` → `Error: Imposible calcular módulo entre 0.`
-- Potencias:
-  - `0 ^ 0` → `Error matemático: 0 ^ 0 es indeterminado.`
-  - `0 ^ -n` → `Error matemático: 0 elevado a exponente negativo (división por cero).`
-  - Overflow en `^` → `Error de Desbordamiento: El resultado es demasiado grande para ser procesado.`
-- `sqrt(x)` con `x < 0`:
-  - `Error de Dominio: No se puede calcular la raíz cuadrada de un número negativo.`
-- `log(x)` / `log10(x)` con `x <= 0`:
-  - `Error de Dominio: El logaritmo solo está definido para números positivos.`
-- `root(x, y)` con `x < 0` y `y` par/no-impar-entero:
-  - `Error de Dominio: Raíz par de un número negativo produce un número complejo.`
-- `tan(x)` con cos(x) ≈ 0:
-  - `Error de dominio: Tangente indefinida (división por cero en coseno).`
-- Cualquier operación que produzca `NaN` (por ejemplo con `INF`):
-  - `Operación inválida: El resultado es un valor indeterminado (NaN).`
-
-### 6.2. Variables
-
-- Usar variable no definida:
-
-```text
-print(z);
-```
-
-→ `Error Semántico: La variable 'z' no ha sido declarada.`
-
-### 6.3. Sintaxis / Léxico
-
-- Mensajes con formato: `L<linea>:<columna> ...`
-- Casos comunes:
-  - `missing ';'` → `Falta ';' al final de la instrucción.`
-  - `token recognition error at:` → `Token inválido: ...`
-  - `mismatched input ',' expecting ')'` → `Llamada a función mal formada: cantidad de argumentos incorrecta.`
-  - `no viable alternative` → `Error de sintaxis: expresión/instrucción mal formada.`
-
-En REPL el intérprete **no se cae**: imprime el error y te deja seguir escribiendo.
-
----
-
-## 7. Cómo correr el lenguaje (Ubuntu)
-
-### 7.1. Dependencias del sistema
+## 2) Instalar dependencias
 
 ```bash
-sudo apt update
-sudo apt install default-jre python3-pip python3-venv
-```
-
-- **default-jre**: necesario para ejecutar el generador ANTLR (JAR).
-- **python3-venv**: obligatorio en Ubuntu 24.04+ para evitar `externally-managed-environment` (PEP 668).
-
-### 7.2. Instalar ANTLR4 (JAR) y comando `antlr4`
-
-```bash
-cd /tmp
-curl -O https://www.antlr.org/download/antlr-4.13.2-complete.jar
-sudo mv antlr-4.13.2-complete.jar /usr/local/lib/
-echo 'alias antlr4="java -jar /usr/local/lib/antlr-4.13.2-complete.jar"' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### 7.3. Entorno virtual e instalación
-
-```bash
-cd /ruta/a/DKNexus
-rm -rf venv
 python3 -m venv venv
 source venv/bin/activate
-python3 -m ensurepip --upgrade
 python3 -m pip install --upgrade pip
 python3 -m pip install -r requirements.txt
 ```
 
-### 7.4. Generar lexer/parser/visitor (Python)
+## 3) Generar parser/lexer con ANTLR4
 
-Cada vez que cambies `grammar/grammarDKN.g4`:
+Desde la raíz del proyecto:
 
 ```bash
-./build.sh     # o: antlr4 -Dlanguage=Python3 -visitor -no-listener grammar/grammarDKN.g4
+antlr4 -Dlanguage=Python3 -visitor -no-listener -o src grammar/grammarDKN.g4
 ```
 
-`build.sh`:
-- Genera `grammarDKNLexer.py`, `grammarDKNParser.py`, `grammarDKNVisitor.py`, `grammarDKNBaseVisitor.py`.
-- Los mueve a `src/`.
+> Cada cambio en `grammar/grammarDKN.g4` requiere regenerar archivos ANTLR.
 
-### 7.5. Ejecutar el intérprete
-
-Con el venv activado:
+## 4) Ejecutar intérprete
 
 ```bash
-cd /ruta/a/DKNexus
 python3 src/interpreterDKN.py
 ```
 
-Luego:
+Al iniciar:
 
-- Para ejecutar un archivo:
-  - Escribe la ruta, por ejemplo: `tests/ejemplos_basicos.dkn`
-- Para entrar al REPL:
-  - Presiona Enter sin escribir ruta.
-
-En REPL:
-- Escribes varias líneas.
-- Dejas una línea vacía para ejecutar el bloque.
-- Se muestra `>>> Ejecutado.` al terminar el bloque.
+- Ingresa ruta de archivo `.dkn` para ejecución directa.
+- O presiona Enter para entrar a modo interactivo (REPL).
 
 ---
 
-## 8. Archivos clave (resumen)
+## Ejemplos rápidos
 
-- **`grammar/grammarDKN.g4`**: gramática del lenguaje.
-- **`src/interpreterDKN.py`**: intérprete principal, REPL, manejo de errores.
-- **`src/mathDKN.py`**: librería matemática propia.
-- **`src/matrixDKN.py`**: operaciones de matrices 2x2.
-- **`src/grammarDKN*.py`**: archivos generados por ANTLR (no editar a mano).
-- **`tests/*.dkn`**: programas de ejemplo / pruebas.
+### Lógica y control
 
-Limpieza:
-- `*.java`, `*.class` y restos de gramáticas antiguas no se usan.
-- `.gitignore` ya ignora `venv/`, `__pycache__/`, `*.pyc`, `*.java`, `*.class`, etc.
+```dkn
+i = 1;
+while (i <= 5 and not (i == 3)) {
+    print(i);
+    i = i + 1;
+}
+```
+
+### Matrices dinámicas
+
+```dkn
+a = [[1,2,3],[4,5,6]];
+print(trans(a));
+```
+
+### Estado del heap
+
+```dkn
+x = [[1,0],[0,1]];
+dump_memory();
+```
+
+---
+
+## Estado de Entrega (Segundo Corte)
+
+| Ítem | Estado |
+|---|---|
+| Gramática ANTLR4 + Visitor Python | Completado |
+| Heap + punteros + scopes | Completado |
+| Execution Guard | Completado |
+| Math nativa sin `math` | Completado |
+| Matriz dinámica sin NumPy | Completado |
+| Lógica (`and`, `or`, `not`) | Completado |
+| I/O y built-ins de introspección | Completado |
+
+---
+
+## Licencia y uso académico
+
+Proyecto desarrollado con fines académicos para la asignatura de Lenguajes, enfocado en diseño de DSL, análisis sintáctico y construcción de runtimes controlados.
