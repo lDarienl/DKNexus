@@ -118,7 +118,7 @@ class grammarDKNParser ( Parser ):
     sharedContextCache = PredictionContextCache()
 
     literalNames = [ "<INVALID>", "'('", "','", "')'", "'{'", "'}'", "'print'", 
-                     "';'", "'return'", "'push'", "'enqueue'", "'='", "'if'", 
+                     "';'", "'retornar'", "'push'", "'enqueue'", "'='", "'if'", 
                      "'for'", "'while'", "'not'", "'-'", "'^'", "'*'", "'/'", 
                      "'%'", "'+'", "'<'", "'>'", "'<='", "'>='", "'=='", 
                      "'!='", "'and'", "'or'", "'sin'", "'cos'", "'tan'", 

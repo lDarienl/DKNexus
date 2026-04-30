@@ -15,8 +15,8 @@ functionDef
 
 statement
     : 'print' '(' expr ')' ';'                                      # PrintCommand
-    | 'return' expr ';'                                             # ReturnStmt
-    | 'return' ';'                                                  # ReturnVoid
+    | 'retornar' expr ';'                                           # ReturnStmt
+    | 'retornar' ';'                                                # ReturnVoid
     | 'push' '(' VARIABLE ',' expr ')' ';'                          # StackPushStmt
     | 'enqueue' '(' VARIABLE ',' expr ')' ';'                       # QueueEnqueueStmt
     | expr ';'                                                      # PrintExpr

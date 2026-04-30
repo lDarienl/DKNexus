@@ -3,10 +3,10 @@ print("--- Calculando Factorial (Recursión) ---");
 
 function factorial(n) {
     if (n <= 1) {
-        return 1;
+        retornar 1;
     }
     // Llamada recursiva
-    return n * factorial(n - 1);
+    retornar n * factorial(n - 1);
 }
 
 // Variable global

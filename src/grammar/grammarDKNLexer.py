@@ -209,7 +209,7 @@ class grammarDKNLexer(Lexer):
     modeNames = [ "DEFAULT_MODE" ]
 
     literalNames = [ "<INVALID>",
-            "'('", "','", "')'", "'{'", "'}'", "'print'", "';'", "'return'", 
+            "'('", "','", "')'", "'{'", "'}'", "'print'", "';'", "'retornar'", 
             "'push'", "'enqueue'", "'='", "'if'", "'for'", "'while'", "'not'", 
             "'-'", "'^'", "'*'", "'/'", "'%'", "'+'", "'<'", "'>'", "'<='", 
             "'>='", "'=='", "'!='", "'and'", "'or'", "'sin'", "'cos'", "'tan'", 

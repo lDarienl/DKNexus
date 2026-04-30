@@ -931,7 +931,8 @@ class EvalVisitor(grammarDKNVisitor):
 
 def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000):
     """Analiza y ejecuta código del DSL."""
-    input_stream = InputStream(code)
+    code_for_lexer = _normalize_return_keyword(code)
+    input_stream = InputStream(code_for_lexer)
     lexer = grammarDKNLexer(input_stream)
     lexer_err = CollectingErrorListener()
     lexer.removeErrorListeners()
@@ -964,6 +965,67 @@ def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000
         return visitor.return_value if visitor._returned else None
     except (DKNRuntimeError, DKNMemoryError):
         raise
+
+
+def _normalize_return_keyword(code: str) -> str:
+    """Adapta `retornar` al lexer actual y bloquea el uso de `return`."""
+    i = 0
+    n = len(code)
+    out = []
+    in_string = False
+    in_line_comment = False
+
+    while i < n:
+        ch = code[i]
+
+        if in_line_comment:
+            out.append(ch)
+            if ch == '\n':
+                in_line_comment = False
+            i += 1
+            continue
+
+        if in_string:
+            out.append(ch)
+            if ch == '\\' and i + 1 < n:
+                out.append(code[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                in_string = False
+            i += 1
+            continue
+
+        if ch == '"':
+            in_string = True
+            out.append(ch)
+            i += 1
+            continue
+
+        if ch == '/' and i + 1 < n and code[i + 1] == '/':
+            in_line_comment = True
+            out.append(ch)
+            out.append(code[i + 1])
+            i += 2
+            continue
+
+        if ch.isalpha() or ch == '_':
+            start = i
+            i += 1
+            while i < n and (code[i].isalnum() or code[i] == '_'):
+                i += 1
+            word = code[start:i]
+            if word == "return":
+                raise DKNParseError(
+                    "La palabra clave 'return' ya no es válida. Usa 'retornar'."
+                )
+            out.append("return" if word == "retornar" else word)
+            continue
+
+        out.append(ch)
+        i += 1
+
+    return "".join(out)
 
 
 def start_repl():
