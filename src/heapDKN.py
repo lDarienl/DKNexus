@@ -2,9 +2,6 @@
 Simulación de memoria manual (heap + direcciones) para el intérprete DKNexus.
 """
 
-import matrixDKN
-
-
 class DKNMemoryError(Exception):
     """El heap no puede alojar más datos (slots agotados)."""
 
@@ -23,7 +20,7 @@ class HeapManager:
         self._next_id = 0
 
     def weight(self, value: object, depth: int = 0) -> int:
-        """Peso en slots: escalar = 1, matriz = filas x columnas."""
+        """Peso en slots: escalar = 1, listas = suma recursiva de elementos."""
         if depth > 32:
             return 1
         if value is None or isinstance(value, (bool, int, float)):
@@ -31,13 +28,12 @@ class HeapManager:
         if isinstance(value, str):
             return max(1, len(value))
         if isinstance(value, list):
-            dims = matrixDKN.matrix_dimensions(value)
-            if dims is not None:
-                rows, cols = dims
-                return max(1, rows * cols)
             if not value:
                 return 1
-            return max(1, sum(self.weight(x, depth + 1) for x in value))
+            total_weight = 0
+            for element in value:
+                total_weight += self.weight(element, depth + 1)
+            return max(1, total_weight)
         return 1
 
     def _clone_for_store(self, value: object) -> object:
