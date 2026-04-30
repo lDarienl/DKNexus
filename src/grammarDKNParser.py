@@ -1,4 +1,4 @@
-# Generated from grammarDKN.g4 by ANTLR 4.13.2
+# Generated from grammar/grammarDKN.g4 by ANTLR 4.13.2
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
@@ -10,101 +10,105 @@ else:
 
 def serializedATN():
     return [
-        4,1,56,263,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,1,0,4,0,12,8,
+        4,1,56,276,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,1,0,4,0,12,8,
         0,11,0,12,0,13,1,1,1,1,3,1,18,8,1,1,2,1,2,1,2,1,2,1,2,1,2,5,2,26,
         8,2,10,2,12,2,29,9,2,3,2,31,8,2,1,2,1,2,1,2,4,2,36,8,2,11,2,12,2,
         37,1,2,1,2,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,
         3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,
-        3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,4,3,84,8,3,11,
-        3,12,3,85,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,4,3,100,
-        8,3,11,3,12,3,101,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,4,3,112,8,3,11,
-        3,12,3,113,1,3,1,3,3,3,118,8,3,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
+        3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,3,1,
+        3,1,3,1,3,1,3,1,3,4,3,92,8,3,11,3,12,3,93,1,3,1,3,1,3,1,3,1,3,1,
+        3,1,3,1,3,1,3,1,3,1,3,1,3,4,3,108,8,3,11,3,12,3,109,1,3,1,3,1,3,
+        1,3,1,3,1,3,1,3,1,3,4,3,120,8,3,11,3,12,3,121,1,3,1,3,3,3,126,8,
+        3,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
         4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
         4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
         4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
         4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
-        4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
-        4,1,4,1,4,5,4,211,8,4,10,4,12,4,214,9,4,3,4,216,8,4,1,4,1,4,1,4,
-        1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,5,4,229,8,4,10,4,12,4,232,9,4,3,
-        4,234,8,4,1,4,1,4,3,4,238,8,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
-        4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,5,4,258,8,4,10,4,12,4,261,
-        9,4,1,4,0,1,8,5,0,2,4,6,8,0,3,1,0,18,20,2,0,16,16,21,21,1,0,22,27,
-        310,0,11,1,0,0,0,2,17,1,0,0,0,4,19,1,0,0,0,6,117,1,0,0,0,8,237,1,
-        0,0,0,10,12,3,2,1,0,11,10,1,0,0,0,12,13,1,0,0,0,13,11,1,0,0,0,13,
-        14,1,0,0,0,14,1,1,0,0,0,15,18,3,4,2,0,16,18,3,6,3,0,17,15,1,0,0,
-        0,17,16,1,0,0,0,18,3,1,0,0,0,19,20,5,51,0,0,20,21,5,55,0,0,21,30,
-        5,1,0,0,22,27,5,55,0,0,23,24,5,2,0,0,24,26,5,55,0,0,25,23,1,0,0,
-        0,26,29,1,0,0,0,27,25,1,0,0,0,27,28,1,0,0,0,28,31,1,0,0,0,29,27,
-        1,0,0,0,30,22,1,0,0,0,30,31,1,0,0,0,31,32,1,0,0,0,32,33,5,3,0,0,
-        33,35,5,4,0,0,34,36,3,6,3,0,35,34,1,0,0,0,36,37,1,0,0,0,37,35,1,
-        0,0,0,37,38,1,0,0,0,38,39,1,0,0,0,39,40,5,5,0,0,40,5,1,0,0,0,41,
-        42,5,6,0,0,42,43,5,1,0,0,43,44,3,8,4,0,44,45,5,3,0,0,45,46,5,7,0,
-        0,46,118,1,0,0,0,47,48,5,8,0,0,48,49,3,8,4,0,49,50,5,7,0,0,50,118,
-        1,0,0,0,51,52,5,8,0,0,52,118,5,7,0,0,53,54,5,9,0,0,54,55,5,1,0,0,
-        55,56,5,55,0,0,56,57,5,2,0,0,57,58,3,8,4,0,58,59,5,3,0,0,59,60,5,
-        7,0,0,60,118,1,0,0,0,61,62,5,10,0,0,62,63,5,1,0,0,63,64,5,55,0,0,
-        64,65,5,2,0,0,65,66,3,8,4,0,66,67,5,3,0,0,67,68,5,7,0,0,68,118,1,
-        0,0,0,69,70,3,8,4,0,70,71,5,7,0,0,71,118,1,0,0,0,72,73,5,55,0,0,
-        73,74,5,11,0,0,74,75,3,8,4,0,75,76,5,7,0,0,76,118,1,0,0,0,77,78,
-        5,12,0,0,78,79,5,1,0,0,79,80,3,8,4,0,80,81,5,3,0,0,81,83,5,4,0,0,
-        82,84,3,6,3,0,83,82,1,0,0,0,84,85,1,0,0,0,85,83,1,0,0,0,85,86,1,
-        0,0,0,86,87,1,0,0,0,87,88,5,5,0,0,88,118,1,0,0,0,89,90,5,13,0,0,
-        90,91,5,1,0,0,91,92,3,8,4,0,92,93,5,7,0,0,93,94,3,8,4,0,94,95,5,
-        7,0,0,95,96,3,8,4,0,96,97,5,3,0,0,97,99,5,4,0,0,98,100,3,6,3,0,99,
-        98,1,0,0,0,100,101,1,0,0,0,101,99,1,0,0,0,101,102,1,0,0,0,102,103,
-        1,0,0,0,103,104,5,5,0,0,104,118,1,0,0,0,105,106,5,14,0,0,106,107,
-        5,1,0,0,107,108,3,8,4,0,108,109,5,3,0,0,109,111,5,4,0,0,110,112,
-        3,6,3,0,111,110,1,0,0,0,112,113,1,0,0,0,113,111,1,0,0,0,113,114,
-        1,0,0,0,114,115,1,0,0,0,115,116,5,5,0,0,116,118,1,0,0,0,117,41,1,
-        0,0,0,117,47,1,0,0,0,117,51,1,0,0,0,117,53,1,0,0,0,117,61,1,0,0,
-        0,117,69,1,0,0,0,117,72,1,0,0,0,117,77,1,0,0,0,117,89,1,0,0,0,117,
-        105,1,0,0,0,118,7,1,0,0,0,119,120,6,4,-1,0,120,121,5,15,0,0,121,
-        238,3,8,4,33,122,123,5,16,0,0,123,238,3,8,4,32,124,125,5,1,0,0,125,
-        126,3,8,4,0,126,127,5,3,0,0,127,238,1,0,0,0,128,129,5,55,0,0,129,
-        130,5,11,0,0,130,238,3,8,4,24,131,132,5,30,0,0,132,133,5,1,0,0,133,
-        134,3,8,4,0,134,135,5,3,0,0,135,238,1,0,0,0,136,137,5,31,0,0,137,
-        138,5,1,0,0,138,139,3,8,4,0,139,140,5,3,0,0,140,238,1,0,0,0,141,
-        142,5,32,0,0,142,143,5,1,0,0,143,144,3,8,4,0,144,145,5,3,0,0,145,
-        238,1,0,0,0,146,147,5,33,0,0,147,148,5,1,0,0,148,149,3,8,4,0,149,
-        150,5,3,0,0,150,238,1,0,0,0,151,152,5,34,0,0,152,153,5,1,0,0,153,
-        154,3,8,4,0,154,155,5,3,0,0,155,238,1,0,0,0,156,157,5,35,0,0,157,
-        158,5,1,0,0,158,159,3,8,4,0,159,160,5,2,0,0,160,161,3,8,4,0,161,
-        162,5,3,0,0,162,238,1,0,0,0,163,164,5,36,0,0,164,165,5,1,0,0,165,
-        166,3,8,4,0,166,167,5,3,0,0,167,238,1,0,0,0,168,169,5,37,0,0,169,
-        170,5,1,0,0,170,171,3,8,4,0,171,172,5,3,0,0,172,238,1,0,0,0,173,
-        174,5,38,0,0,174,175,5,1,0,0,175,176,3,8,4,0,176,177,5,3,0,0,177,
-        238,1,0,0,0,178,179,5,39,0,0,179,180,5,1,0,0,180,181,3,8,4,0,181,
-        182,5,3,0,0,182,238,1,0,0,0,183,184,5,40,0,0,184,185,5,1,0,0,185,
-        186,3,8,4,0,186,187,5,3,0,0,187,238,1,0,0,0,188,189,5,41,0,0,189,
-        190,5,1,0,0,190,191,3,8,4,0,191,192,5,3,0,0,192,238,1,0,0,0,193,
-        194,5,42,0,0,194,195,5,1,0,0,195,196,3,8,4,0,196,197,5,3,0,0,197,
-        238,1,0,0,0,198,199,5,43,0,0,199,200,5,1,0,0,200,201,5,55,0,0,201,
-        238,5,3,0,0,202,203,5,44,0,0,203,204,5,1,0,0,204,205,5,55,0,0,205,
-        238,5,3,0,0,206,215,5,45,0,0,207,212,3,8,4,0,208,209,5,2,0,0,209,
-        211,3,8,4,0,210,208,1,0,0,0,211,214,1,0,0,0,212,210,1,0,0,0,212,
-        213,1,0,0,0,213,216,1,0,0,0,214,212,1,0,0,0,215,207,1,0,0,0,215,
-        216,1,0,0,0,216,217,1,0,0,0,217,238,5,46,0,0,218,238,5,52,0,0,219,
-        238,5,53,0,0,220,238,5,54,0,0,221,238,5,47,0,0,222,238,5,48,0,0,
-        223,224,5,55,0,0,224,233,5,1,0,0,225,230,3,8,4,0,226,227,5,2,0,0,
-        227,229,3,8,4,0,228,226,1,0,0,0,229,232,1,0,0,0,230,228,1,0,0,0,
-        230,231,1,0,0,0,231,234,1,0,0,0,232,230,1,0,0,0,233,225,1,0,0,0,
-        233,234,1,0,0,0,234,235,1,0,0,0,235,238,5,3,0,0,236,238,5,55,0,0,
-        237,119,1,0,0,0,237,122,1,0,0,0,237,124,1,0,0,0,237,128,1,0,0,0,
-        237,131,1,0,0,0,237,136,1,0,0,0,237,141,1,0,0,0,237,146,1,0,0,0,
-        237,151,1,0,0,0,237,156,1,0,0,0,237,163,1,0,0,0,237,168,1,0,0,0,
-        237,173,1,0,0,0,237,178,1,0,0,0,237,183,1,0,0,0,237,188,1,0,0,0,
-        237,193,1,0,0,0,237,198,1,0,0,0,237,202,1,0,0,0,237,206,1,0,0,0,
-        237,218,1,0,0,0,237,219,1,0,0,0,237,220,1,0,0,0,237,221,1,0,0,0,
-        237,222,1,0,0,0,237,223,1,0,0,0,237,236,1,0,0,0,238,259,1,0,0,0,
-        239,240,10,30,0,0,240,241,5,17,0,0,241,258,3,8,4,31,242,243,10,29,
-        0,0,243,244,7,0,0,0,244,258,3,8,4,30,245,246,10,28,0,0,246,247,7,
-        1,0,0,247,258,3,8,4,29,248,249,10,27,0,0,249,250,7,2,0,0,250,258,
-        3,8,4,28,251,252,10,26,0,0,252,253,5,28,0,0,253,258,3,8,4,27,254,
-        255,10,25,0,0,255,256,5,29,0,0,256,258,3,8,4,26,257,239,1,0,0,0,
-        257,242,1,0,0,0,257,245,1,0,0,0,257,248,1,0,0,0,257,251,1,0,0,0,
-        257,254,1,0,0,0,258,261,1,0,0,0,259,257,1,0,0,0,259,260,1,0,0,0,
-        260,9,1,0,0,0,261,259,1,0,0,0,16,13,17,27,30,37,85,101,113,117,212,
-        215,230,233,237,257,259
+        4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,5,4,219,8,4,10,4,12,
+        4,222,9,4,3,4,224,8,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,
+        4,1,4,1,4,1,4,1,4,1,4,5,4,242,8,4,10,4,12,4,245,9,4,3,4,247,8,4,
+        1,4,1,4,3,4,251,8,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,1,4,
+        1,4,1,4,1,4,1,4,1,4,1,4,1,4,5,4,271,8,4,10,4,12,4,274,9,4,1,4,0,
+        1,8,5,0,2,4,6,8,0,3,1,0,20,22,2,0,18,18,23,23,1,0,24,29,325,0,11,
+        1,0,0,0,2,17,1,0,0,0,4,19,1,0,0,0,6,125,1,0,0,0,8,250,1,0,0,0,10,
+        12,3,2,1,0,11,10,1,0,0,0,12,13,1,0,0,0,13,11,1,0,0,0,13,14,1,0,0,
+        0,14,1,1,0,0,0,15,18,3,4,2,0,16,18,3,6,3,0,17,15,1,0,0,0,17,16,1,
+        0,0,0,18,3,1,0,0,0,19,20,5,51,0,0,20,21,5,55,0,0,21,30,5,1,0,0,22,
+        27,5,55,0,0,23,24,5,2,0,0,24,26,5,55,0,0,25,23,1,0,0,0,26,29,1,0,
+        0,0,27,25,1,0,0,0,27,28,1,0,0,0,28,31,1,0,0,0,29,27,1,0,0,0,30,22,
+        1,0,0,0,30,31,1,0,0,0,31,32,1,0,0,0,32,33,5,3,0,0,33,35,5,4,0,0,
+        34,36,3,6,3,0,35,34,1,0,0,0,36,37,1,0,0,0,37,35,1,0,0,0,37,38,1,
+        0,0,0,38,39,1,0,0,0,39,40,5,5,0,0,40,5,1,0,0,0,41,42,5,6,0,0,42,
+        43,5,1,0,0,43,44,3,8,4,0,44,45,5,3,0,0,45,46,5,7,0,0,46,126,1,0,
+        0,0,47,48,5,8,0,0,48,49,3,8,4,0,49,50,5,7,0,0,50,126,1,0,0,0,51,
+        52,5,8,0,0,52,126,5,7,0,0,53,54,5,9,0,0,54,55,5,1,0,0,55,56,5,55,
+        0,0,56,57,5,2,0,0,57,58,3,8,4,0,58,59,5,3,0,0,59,60,5,7,0,0,60,126,
+        1,0,0,0,61,62,5,10,0,0,62,63,5,1,0,0,63,64,5,55,0,0,64,65,5,2,0,
+        0,65,66,3,8,4,0,66,67,5,3,0,0,67,68,5,7,0,0,68,126,1,0,0,0,69,70,
+        3,8,4,0,70,71,5,7,0,0,71,126,1,0,0,0,72,73,5,55,0,0,73,74,5,11,0,
+        0,74,75,3,8,4,0,75,76,5,7,0,0,76,126,1,0,0,0,77,78,5,55,0,0,78,79,
+        5,12,0,0,79,80,3,8,4,0,80,81,5,13,0,0,81,82,5,11,0,0,82,83,3,8,4,
+        0,83,84,5,7,0,0,84,126,1,0,0,0,85,86,5,14,0,0,86,87,5,1,0,0,87,88,
+        3,8,4,0,88,89,5,3,0,0,89,91,5,4,0,0,90,92,3,6,3,0,91,90,1,0,0,0,
+        92,93,1,0,0,0,93,91,1,0,0,0,93,94,1,0,0,0,94,95,1,0,0,0,95,96,5,
+        5,0,0,96,126,1,0,0,0,97,98,5,15,0,0,98,99,5,1,0,0,99,100,3,8,4,0,
+        100,101,5,7,0,0,101,102,3,8,4,0,102,103,5,7,0,0,103,104,3,8,4,0,
+        104,105,5,3,0,0,105,107,5,4,0,0,106,108,3,6,3,0,107,106,1,0,0,0,
+        108,109,1,0,0,0,109,107,1,0,0,0,109,110,1,0,0,0,110,111,1,0,0,0,
+        111,112,5,5,0,0,112,126,1,0,0,0,113,114,5,16,0,0,114,115,5,1,0,0,
+        115,116,3,8,4,0,116,117,5,3,0,0,117,119,5,4,0,0,118,120,3,6,3,0,
+        119,118,1,0,0,0,120,121,1,0,0,0,121,119,1,0,0,0,121,122,1,0,0,0,
+        122,123,1,0,0,0,123,124,5,5,0,0,124,126,1,0,0,0,125,41,1,0,0,0,125,
+        47,1,0,0,0,125,51,1,0,0,0,125,53,1,0,0,0,125,61,1,0,0,0,125,69,1,
+        0,0,0,125,72,1,0,0,0,125,77,1,0,0,0,125,85,1,0,0,0,125,97,1,0,0,
+        0,125,113,1,0,0,0,126,7,1,0,0,0,127,128,6,4,-1,0,128,129,5,17,0,
+        0,129,251,3,8,4,34,130,131,5,18,0,0,131,251,3,8,4,33,132,133,5,1,
+        0,0,133,134,3,8,4,0,134,135,5,3,0,0,135,251,1,0,0,0,136,137,5,55,
+        0,0,137,138,5,11,0,0,138,251,3,8,4,25,139,140,5,32,0,0,140,141,5,
+        1,0,0,141,142,3,8,4,0,142,143,5,3,0,0,143,251,1,0,0,0,144,145,5,
+        33,0,0,145,146,5,1,0,0,146,147,3,8,4,0,147,148,5,3,0,0,148,251,1,
+        0,0,0,149,150,5,34,0,0,150,151,5,1,0,0,151,152,3,8,4,0,152,153,5,
+        3,0,0,153,251,1,0,0,0,154,155,5,35,0,0,155,156,5,1,0,0,156,157,3,
+        8,4,0,157,158,5,3,0,0,158,251,1,0,0,0,159,160,5,36,0,0,160,161,5,
+        1,0,0,161,162,3,8,4,0,162,163,5,3,0,0,163,251,1,0,0,0,164,165,5,
+        37,0,0,165,166,5,1,0,0,166,167,3,8,4,0,167,168,5,2,0,0,168,169,3,
+        8,4,0,169,170,5,3,0,0,170,251,1,0,0,0,171,172,5,38,0,0,172,173,5,
+        1,0,0,173,174,3,8,4,0,174,175,5,3,0,0,175,251,1,0,0,0,176,177,5,
+        39,0,0,177,178,5,1,0,0,178,179,3,8,4,0,179,180,5,3,0,0,180,251,1,
+        0,0,0,181,182,5,40,0,0,182,183,5,1,0,0,183,184,3,8,4,0,184,185,5,
+        3,0,0,185,251,1,0,0,0,186,187,5,41,0,0,187,188,5,1,0,0,188,189,3,
+        8,4,0,189,190,5,3,0,0,190,251,1,0,0,0,191,192,5,42,0,0,192,193,5,
+        1,0,0,193,194,3,8,4,0,194,195,5,3,0,0,195,251,1,0,0,0,196,197,5,
+        43,0,0,197,198,5,1,0,0,198,199,3,8,4,0,199,200,5,3,0,0,200,251,1,
+        0,0,0,201,202,5,44,0,0,202,203,5,1,0,0,203,204,3,8,4,0,204,205,5,
+        3,0,0,205,251,1,0,0,0,206,207,5,45,0,0,207,208,5,1,0,0,208,209,5,
+        55,0,0,209,251,5,3,0,0,210,211,5,46,0,0,211,212,5,1,0,0,212,213,
+        5,55,0,0,213,251,5,3,0,0,214,223,5,12,0,0,215,220,3,8,4,0,216,217,
+        5,2,0,0,217,219,3,8,4,0,218,216,1,0,0,0,219,222,1,0,0,0,220,218,
+        1,0,0,0,220,221,1,0,0,0,221,224,1,0,0,0,222,220,1,0,0,0,223,215,
+        1,0,0,0,223,224,1,0,0,0,224,225,1,0,0,0,225,251,5,13,0,0,226,251,
+        5,52,0,0,227,251,5,53,0,0,228,251,5,54,0,0,229,251,5,47,0,0,230,
+        251,5,48,0,0,231,232,5,55,0,0,232,233,5,12,0,0,233,234,3,8,4,0,234,
+        235,5,13,0,0,235,251,1,0,0,0,236,237,5,55,0,0,237,246,5,1,0,0,238,
+        243,3,8,4,0,239,240,5,2,0,0,240,242,3,8,4,0,241,239,1,0,0,0,242,
+        245,1,0,0,0,243,241,1,0,0,0,243,244,1,0,0,0,244,247,1,0,0,0,245,
+        243,1,0,0,0,246,238,1,0,0,0,246,247,1,0,0,0,247,248,1,0,0,0,248,
+        251,5,3,0,0,249,251,5,55,0,0,250,127,1,0,0,0,250,130,1,0,0,0,250,
+        132,1,0,0,0,250,136,1,0,0,0,250,139,1,0,0,0,250,144,1,0,0,0,250,
+        149,1,0,0,0,250,154,1,0,0,0,250,159,1,0,0,0,250,164,1,0,0,0,250,
+        171,1,0,0,0,250,176,1,0,0,0,250,181,1,0,0,0,250,186,1,0,0,0,250,
+        191,1,0,0,0,250,196,1,0,0,0,250,201,1,0,0,0,250,206,1,0,0,0,250,
+        210,1,0,0,0,250,214,1,0,0,0,250,226,1,0,0,0,250,227,1,0,0,0,250,
+        228,1,0,0,0,250,229,1,0,0,0,250,230,1,0,0,0,250,231,1,0,0,0,250,
+        236,1,0,0,0,250,249,1,0,0,0,251,272,1,0,0,0,252,253,10,31,0,0,253,
+        254,5,19,0,0,254,271,3,8,4,32,255,256,10,30,0,0,256,257,7,0,0,0,
+        257,271,3,8,4,31,258,259,10,29,0,0,259,260,7,1,0,0,260,271,3,8,4,
+        30,261,262,10,28,0,0,262,263,7,2,0,0,263,271,3,8,4,29,264,265,10,
+        27,0,0,265,266,5,30,0,0,266,271,3,8,4,28,267,268,10,26,0,0,268,269,
+        5,31,0,0,269,271,3,8,4,27,270,252,1,0,0,0,270,255,1,0,0,0,270,258,
+        1,0,0,0,270,261,1,0,0,0,270,264,1,0,0,0,270,267,1,0,0,0,271,274,
+        1,0,0,0,272,270,1,0,0,0,272,273,1,0,0,0,273,9,1,0,0,0,274,272,1,
+        0,0,0,16,13,17,27,30,37,93,109,121,125,220,223,243,246,250,270,272
     ]
 
 class grammarDKNParser ( Parser ):
@@ -118,14 +122,14 @@ class grammarDKNParser ( Parser ):
     sharedContextCache = PredictionContextCache()
 
     literalNames = [ "<INVALID>", "'('", "','", "')'", "'{'", "'}'", "'print'", 
-                     "';'", "'retornar'", "'push'", "'enqueue'", "'='", "'if'", 
-                     "'for'", "'while'", "'not'", "'-'", "'^'", "'*'", "'/'", 
-                     "'%'", "'+'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-                     "'!='", "'and'", "'or'", "'sin'", "'cos'", "'tan'", 
-                     "'tanh'", "'sqrt'", "'root'", "'log'", "'log10'", "'abs'", 
-                     "'floor'", "'ceil'", "'trans'", "'inv'", "'pop'", "'dequeue'", 
-                     "'['", "']'", "<INVALID>", "<INVALID>", "<INVALID>", 
-                     "<INVALID>", "'function'" ]
+                     "';'", "'retornar'", "'push'", "'enqueue'", "'='", 
+                     "'['", "']'", "'if'", "'for'", "'while'", "'not'", 
+                     "'-'", "'^'", "'*'", "'/'", "'%'", "'+'", "'<'", "'>'", 
+                     "'<='", "'>='", "'=='", "'!='", "'and'", "'or'", "'sin'", 
+                     "'cos'", "'tan'", "'tanh'", "'sqrt'", "'root'", "'log'", 
+                     "'log10'", "'abs'", "'floor'", "'ceil'", "'trans'", 
+                     "'inv'", "'pop'", "'dequeue'", "<INVALID>", "<INVALID>", 
+                     "<INVALID>", "<INVALID>", "'function'" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
                       "<INVALID>", "<INVALID>", "<INVALID>", "<INVALID>", 
@@ -260,7 +264,7 @@ class grammarDKNParser ( Parser ):
                 self.state = 13 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 70298374359873346) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 70368739883210562) != 0)):
                     break
 
         except RecognitionException as re:
@@ -338,7 +342,7 @@ class grammarDKNParser ( Parser ):
                 self.state = 15
                 self.functionDef()
                 pass
-            elif token in [1, 6, 8, 9, 10, 12, 13, 14, 15, 16, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 47, 48, 52, 53, 54, 55]:
+            elif token in [1, 6, 8, 9, 10, 12, 14, 15, 16, 17, 18, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 52, 53, 54, 55]:
                 localctx = grammarDKNParser.ItemStmtContext(self, localctx)
                 self.enterOuterAlt(localctx, 2)
                 self.state = 16
@@ -448,7 +452,7 @@ class grammarDKNParser ( Parser ):
                 self.state = 37 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546188098) != 0)):
+                if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069525314) != 0)):
                     break
 
             self.state = 39
@@ -613,6 +617,28 @@ class grammarDKNParser ( Parser ):
                 return visitor.visitChildren(self)
 
 
+    class IndexAssignContext(StatementContext):
+
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a grammarDKNParser.StatementContext
+            super().__init__(parser)
+            self.copyFrom(ctx)
+
+        def VARIABLE(self):
+            return self.getToken(grammarDKNParser.VARIABLE, 0)
+        def expr(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(grammarDKNParser.ExprContext)
+            else:
+                return self.getTypedRuleContext(grammarDKNParser.ExprContext,i)
+
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitIndexAssign" ):
+                return visitor.visitIndexAssign(self)
+            else:
+                return visitor.visitChildren(self)
+
+
     class ReturnStmtContext(StatementContext):
 
         def __init__(self, parser, ctx:ParserRuleContext): # actually a grammarDKNParser.StatementContext
@@ -680,7 +706,7 @@ class grammarDKNParser ( Parser ):
         self.enterRule(localctx, 6, self.RULE_statement)
         self._la = 0 # Token type
         try:
-            self.state = 117
+            self.state = 125
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,8,self._ctx)
             if la_ == 1:
@@ -779,97 +805,116 @@ class grammarDKNParser ( Parser ):
                 pass
 
             elif la_ == 8:
-                localctx = grammarDKNParser.IfStmtContext(self, localctx)
+                localctx = grammarDKNParser.IndexAssignContext(self, localctx)
                 self.enterOuterAlt(localctx, 8)
                 self.state = 77
-                self.match(grammarDKNParser.T__11)
+                self.match(grammarDKNParser.VARIABLE)
                 self.state = 78
-                self.match(grammarDKNParser.T__0)
+                self.match(grammarDKNParser.T__11)
                 self.state = 79
                 self.expr(0)
                 self.state = 80
-                self.match(grammarDKNParser.T__2)
+                self.match(grammarDKNParser.T__12)
                 self.state = 81
-                self.match(grammarDKNParser.T__3)
-                self.state = 83 
-                self._errHandler.sync(self)
-                _la = self._input.LA(1)
-                while True:
-                    self.state = 82
-                    self.statement()
-                    self.state = 85 
-                    self._errHandler.sync(self)
-                    _la = self._input.LA(1)
-                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546188098) != 0)):
-                        break
-
-                self.state = 87
-                self.match(grammarDKNParser.T__4)
+                self.match(grammarDKNParser.T__10)
+                self.state = 82
+                self.expr(0)
+                self.state = 83
+                self.match(grammarDKNParser.T__6)
                 pass
 
             elif la_ == 9:
-                localctx = grammarDKNParser.ForStmtContext(self, localctx)
+                localctx = grammarDKNParser.IfStmtContext(self, localctx)
                 self.enterOuterAlt(localctx, 9)
-                self.state = 89
-                self.match(grammarDKNParser.T__12)
-                self.state = 90
+                self.state = 85
+                self.match(grammarDKNParser.T__13)
+                self.state = 86
                 self.match(grammarDKNParser.T__0)
-                self.state = 91
+                self.state = 87
                 self.expr(0)
-                self.state = 92
-                self.match(grammarDKNParser.T__6)
-                self.state = 93
-                self.expr(0)
-                self.state = 94
-                self.match(grammarDKNParser.T__6)
-                self.state = 95
-                self.expr(0)
-                self.state = 96
+                self.state = 88
                 self.match(grammarDKNParser.T__2)
-                self.state = 97
+                self.state = 89
                 self.match(grammarDKNParser.T__3)
-                self.state = 99 
+                self.state = 91 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
-                    self.state = 98
+                    self.state = 90
                     self.statement()
-                    self.state = 101 
+                    self.state = 93 
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
-                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546188098) != 0)):
+                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069525314) != 0)):
                         break
 
-                self.state = 103
+                self.state = 95
                 self.match(grammarDKNParser.T__4)
                 pass
 
             elif la_ == 10:
-                localctx = grammarDKNParser.WhileStmtContext(self, localctx)
+                localctx = grammarDKNParser.ForStmtContext(self, localctx)
                 self.enterOuterAlt(localctx, 10)
-                self.state = 105
-                self.match(grammarDKNParser.T__13)
-                self.state = 106
+                self.state = 97
+                self.match(grammarDKNParser.T__14)
+                self.state = 98
                 self.match(grammarDKNParser.T__0)
-                self.state = 107
+                self.state = 99
                 self.expr(0)
-                self.state = 108
+                self.state = 100
+                self.match(grammarDKNParser.T__6)
+                self.state = 101
+                self.expr(0)
+                self.state = 102
+                self.match(grammarDKNParser.T__6)
+                self.state = 103
+                self.expr(0)
+                self.state = 104
                 self.match(grammarDKNParser.T__2)
-                self.state = 109
+                self.state = 105
                 self.match(grammarDKNParser.T__3)
-                self.state = 111 
+                self.state = 107 
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
                 while True:
-                    self.state = 110
+                    self.state = 106
                     self.statement()
-                    self.state = 113 
+                    self.state = 109 
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
-                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546188098) != 0)):
+                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069525314) != 0)):
                         break
 
+                self.state = 111
+                self.match(grammarDKNParser.T__4)
+                pass
+
+            elif la_ == 11:
+                localctx = grammarDKNParser.WhileStmtContext(self, localctx)
+                self.enterOuterAlt(localctx, 11)
+                self.state = 113
+                self.match(grammarDKNParser.T__15)
+                self.state = 114
+                self.match(grammarDKNParser.T__0)
                 self.state = 115
+                self.expr(0)
+                self.state = 116
+                self.match(grammarDKNParser.T__2)
+                self.state = 117
+                self.match(grammarDKNParser.T__3)
+                self.state = 119 
+                self._errHandler.sync(self)
+                _la = self._input.LA(1)
+                while True:
+                    self.state = 118
+                    self.statement()
+                    self.state = 121 
+                    self._errHandler.sync(self)
+                    _la = self._input.LA(1)
+                    if not ((((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069525314) != 0)):
+                        break
+
+                self.state = 123
                 self.match(grammarDKNParser.T__4)
                 pass
 
@@ -1257,6 +1302,25 @@ class grammarDKNParser ( Parser ):
                 return visitor.visitChildren(self)
 
 
+    class IndexAccessContext(ExprContext):
+
+        def __init__(self, parser, ctx:ParserRuleContext): # actually a grammarDKNParser.ExprContext
+            super().__init__(parser)
+            self.copyFrom(ctx)
+
+        def VARIABLE(self):
+            return self.getToken(grammarDKNParser.VARIABLE, 0)
+        def expr(self):
+            return self.getTypedRuleContext(grammarDKNParser.ExprContext,0)
+
+
+        def accept(self, visitor:ParseTreeVisitor):
+            if hasattr( visitor, "visitIndexAccess" ):
+                return visitor.visitIndexAccess(self)
+            else:
+                return visitor.visitChildren(self)
+
+
     class NumContext(ExprContext):
 
         def __init__(self, parser, ctx:ParserRuleContext): # actually a grammarDKNParser.ExprContext
@@ -1497,7 +1561,7 @@ class grammarDKNParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 237
+            self.state = 250
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,13,self._ctx)
             if la_ == 1:
@@ -1505,52 +1569,26 @@ class grammarDKNParser ( Parser ):
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 120
-                self.match(grammarDKNParser.T__14)
-                self.state = 121
-                self.expr(33)
+                self.state = 128
+                self.match(grammarDKNParser.T__16)
+                self.state = 129
+                self.expr(34)
                 pass
 
             elif la_ == 2:
                 localctx = grammarDKNParser.UnaryMinusContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 122
-                self.match(grammarDKNParser.T__15)
-                self.state = 123
-                self.expr(32)
+                self.state = 130
+                self.match(grammarDKNParser.T__17)
+                self.state = 131
+                self.expr(33)
                 pass
 
             elif la_ == 3:
                 localctx = grammarDKNParser.ParensContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 124
-                self.match(grammarDKNParser.T__0)
-                self.state = 125
-                self.expr(0)
-                self.state = 126
-                self.match(grammarDKNParser.T__2)
-                pass
-
-            elif la_ == 4:
-                localctx = grammarDKNParser.AssignExprContext(self, localctx)
-                self._ctx = localctx
-                _prevctx = localctx
-                self.state = 128
-                self.match(grammarDKNParser.VARIABLE)
-                self.state = 129
-                self.match(grammarDKNParser.T__10)
-                self.state = 130
-                self.expr(24)
-                pass
-
-            elif la_ == 5:
-                localctx = grammarDKNParser.SinFuncContext(self, localctx)
-                self._ctx = localctx
-                _prevctx = localctx
-                self.state = 131
-                self.match(grammarDKNParser.T__29)
                 self.state = 132
                 self.match(grammarDKNParser.T__0)
                 self.state = 133
@@ -1559,17 +1597,43 @@ class grammarDKNParser ( Parser ):
                 self.match(grammarDKNParser.T__2)
                 pass
 
+            elif la_ == 4:
+                localctx = grammarDKNParser.AssignExprContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 136
+                self.match(grammarDKNParser.VARIABLE)
+                self.state = 137
+                self.match(grammarDKNParser.T__10)
+                self.state = 138
+                self.expr(25)
+                pass
+
+            elif la_ == 5:
+                localctx = grammarDKNParser.SinFuncContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 139
+                self.match(grammarDKNParser.T__31)
+                self.state = 140
+                self.match(grammarDKNParser.T__0)
+                self.state = 141
+                self.expr(0)
+                self.state = 142
+                self.match(grammarDKNParser.T__2)
+                pass
+
             elif la_ == 6:
                 localctx = grammarDKNParser.CosFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 136
-                self.match(grammarDKNParser.T__30)
-                self.state = 137
+                self.state = 144
+                self.match(grammarDKNParser.T__32)
+                self.state = 145
                 self.match(grammarDKNParser.T__0)
-                self.state = 138
+                self.state = 146
                 self.expr(0)
-                self.state = 139
+                self.state = 147
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1577,13 +1641,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.TanFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 141
-                self.match(grammarDKNParser.T__31)
-                self.state = 142
+                self.state = 149
+                self.match(grammarDKNParser.T__33)
+                self.state = 150
                 self.match(grammarDKNParser.T__0)
-                self.state = 143
+                self.state = 151
                 self.expr(0)
-                self.state = 144
+                self.state = 152
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1591,13 +1655,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.TanhFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 146
-                self.match(grammarDKNParser.T__32)
-                self.state = 147
+                self.state = 154
+                self.match(grammarDKNParser.T__34)
+                self.state = 155
                 self.match(grammarDKNParser.T__0)
-                self.state = 148
+                self.state = 156
                 self.expr(0)
-                self.state = 149
+                self.state = 157
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1605,13 +1669,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.SqrtFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 151
-                self.match(grammarDKNParser.T__33)
-                self.state = 152
+                self.state = 159
+                self.match(grammarDKNParser.T__35)
+                self.state = 160
                 self.match(grammarDKNParser.T__0)
-                self.state = 153
+                self.state = 161
                 self.expr(0)
-                self.state = 154
+                self.state = 162
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1619,17 +1683,17 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.RootFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 156
-                self.match(grammarDKNParser.T__34)
-                self.state = 157
+                self.state = 164
+                self.match(grammarDKNParser.T__36)
+                self.state = 165
                 self.match(grammarDKNParser.T__0)
-                self.state = 158
+                self.state = 166
                 self.expr(0)
-                self.state = 159
+                self.state = 167
                 self.match(grammarDKNParser.T__1)
-                self.state = 160
+                self.state = 168
                 self.expr(0)
-                self.state = 161
+                self.state = 169
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1637,13 +1701,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.LogFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 163
-                self.match(grammarDKNParser.T__35)
-                self.state = 164
+                self.state = 171
+                self.match(grammarDKNParser.T__37)
+                self.state = 172
                 self.match(grammarDKNParser.T__0)
-                self.state = 165
+                self.state = 173
                 self.expr(0)
-                self.state = 166
+                self.state = 174
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1651,13 +1715,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.Log10FuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 168
-                self.match(grammarDKNParser.T__36)
-                self.state = 169
+                self.state = 176
+                self.match(grammarDKNParser.T__38)
+                self.state = 177
                 self.match(grammarDKNParser.T__0)
-                self.state = 170
+                self.state = 178
                 self.expr(0)
-                self.state = 171
+                self.state = 179
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1665,13 +1729,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.AbsFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 173
-                self.match(grammarDKNParser.T__37)
-                self.state = 174
+                self.state = 181
+                self.match(grammarDKNParser.T__39)
+                self.state = 182
                 self.match(grammarDKNParser.T__0)
-                self.state = 175
+                self.state = 183
                 self.expr(0)
-                self.state = 176
+                self.state = 184
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1679,13 +1743,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.FloorFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 178
-                self.match(grammarDKNParser.T__38)
-                self.state = 179
+                self.state = 186
+                self.match(grammarDKNParser.T__40)
+                self.state = 187
                 self.match(grammarDKNParser.T__0)
-                self.state = 180
+                self.state = 188
                 self.expr(0)
-                self.state = 181
+                self.state = 189
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1693,13 +1757,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.CeilFuncContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 183
-                self.match(grammarDKNParser.T__39)
-                self.state = 184
+                self.state = 191
+                self.match(grammarDKNParser.T__41)
+                self.state = 192
                 self.match(grammarDKNParser.T__0)
-                self.state = 185
+                self.state = 193
                 self.expr(0)
-                self.state = 186
+                self.state = 194
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1707,13 +1771,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.MatrixTransContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 188
-                self.match(grammarDKNParser.T__40)
-                self.state = 189
+                self.state = 196
+                self.match(grammarDKNParser.T__42)
+                self.state = 197
                 self.match(grammarDKNParser.T__0)
-                self.state = 190
+                self.state = 198
                 self.expr(0)
-                self.state = 191
+                self.state = 199
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1721,13 +1785,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.MatrixInvContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 193
-                self.match(grammarDKNParser.T__41)
-                self.state = 194
+                self.state = 201
+                self.match(grammarDKNParser.T__43)
+                self.state = 202
                 self.match(grammarDKNParser.T__0)
-                self.state = 195
+                self.state = 203
                 self.expr(0)
-                self.state = 196
+                self.state = 204
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1735,13 +1799,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.StackPopContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 198
-                self.match(grammarDKNParser.T__42)
-                self.state = 199
+                self.state = 206
+                self.match(grammarDKNParser.T__44)
+                self.state = 207
                 self.match(grammarDKNParser.T__0)
-                self.state = 200
+                self.state = 208
                 self.match(grammarDKNParser.VARIABLE)
-                self.state = 201
+                self.state = 209
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1749,13 +1813,13 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.QueueDequeueContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 202
-                self.match(grammarDKNParser.T__43)
-                self.state = 203
+                self.state = 210
+                self.match(grammarDKNParser.T__45)
+                self.state = 211
                 self.match(grammarDKNParser.T__0)
-                self.state = 204
+                self.state = 212
                 self.match(grammarDKNParser.VARIABLE)
-                self.state = 205
+                self.state = 213
                 self.match(grammarDKNParser.T__2)
                 pass
 
@@ -1763,37 +1827,37 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.ListLiteralContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 206
-                self.match(grammarDKNParser.T__44)
-                self.state = 215
+                self.state = 214
+                self.match(grammarDKNParser.T__11)
+                self.state = 223
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546157570) != 0):
-                    self.state = 207
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069408770) != 0):
+                    self.state = 215
                     self.expr(0)
-                    self.state = 212
+                    self.state = 220
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     while _la==2:
-                        self.state = 208
+                        self.state = 216
                         self.match(grammarDKNParser.T__1)
-                        self.state = 209
+                        self.state = 217
                         self.expr(0)
-                        self.state = 214
+                        self.state = 222
                         self._errHandler.sync(self)
                         _la = self._input.LA(1)
 
 
 
-                self.state = 217
-                self.match(grammarDKNParser.T__45)
+                self.state = 225
+                self.match(grammarDKNParser.T__12)
                 pass
 
             elif la_ == 21:
                 localctx = grammarDKNParser.PiConstContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 218
+                self.state = 226
                 self.match(grammarDKNParser.PI)
                 pass
 
@@ -1801,7 +1865,7 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.EConstContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 219
+                self.state = 227
                 self.match(grammarDKNParser.EULER)
                 pass
 
@@ -1809,7 +1873,7 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.InfConstContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 220
+                self.state = 228
                 self.match(grammarDKNParser.INF)
                 pass
 
@@ -1817,7 +1881,7 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.NumContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 221
+                self.state = 229
                 self.match(grammarDKNParser.NUMBER)
                 pass
 
@@ -1825,53 +1889,67 @@ class grammarDKNParser ( Parser ):
                 localctx = grammarDKNParser.StringLiteralContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 222
+                self.state = 230
                 self.match(grammarDKNParser.STRING)
                 pass
 
             elif la_ == 26:
+                localctx = grammarDKNParser.IndexAccessContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 231
+                self.match(grammarDKNParser.VARIABLE)
+                self.state = 232
+                self.match(grammarDKNParser.T__11)
+                self.state = 233
+                self.expr(0)
+                self.state = 234
+                self.match(grammarDKNParser.T__12)
+                pass
+
+            elif la_ == 27:
                 localctx = grammarDKNParser.FuncCallContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 223
+                self.state = 236
                 self.match(grammarDKNParser.VARIABLE)
-                self.state = 224
+                self.state = 237
                 self.match(grammarDKNParser.T__0)
-                self.state = 233
+                self.state = 246
                 self._errHandler.sync(self)
                 _la = self._input.LA(1)
-                if (((_la) & ~0x3f) == 0 and ((1 << _la) & 68046574546157570) != 0):
-                    self.state = 225
+                if (((_la) & ~0x3f) == 0 and ((1 << _la) & 68116940069408770) != 0):
+                    self.state = 238
                     self.expr(0)
-                    self.state = 230
+                    self.state = 243
                     self._errHandler.sync(self)
                     _la = self._input.LA(1)
                     while _la==2:
-                        self.state = 226
+                        self.state = 239
                         self.match(grammarDKNParser.T__1)
-                        self.state = 227
+                        self.state = 240
                         self.expr(0)
-                        self.state = 232
+                        self.state = 245
                         self._errHandler.sync(self)
                         _la = self._input.LA(1)
 
 
 
-                self.state = 235
+                self.state = 248
                 self.match(grammarDKNParser.T__2)
                 pass
 
-            elif la_ == 27:
+            elif la_ == 28:
                 localctx = grammarDKNParser.VarContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 236
+                self.state = 249
                 self.match(grammarDKNParser.VARIABLE)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 259
+            self.state = 272
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,15,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -1879,107 +1957,107 @@ class grammarDKNParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 257
+                    self.state = 270
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,14,self._ctx)
                     if la_ == 1:
                         localctx = grammarDKNParser.PotenciaContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 239
-                        if not self.precpred(self._ctx, 30):
+                        self.state = 252
+                        if not self.precpred(self._ctx, 31):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 30)")
-                        self.state = 240
-                        self.match(grammarDKNParser.T__16)
-                        self.state = 241
-                        self.expr(31)
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 31)")
+                        self.state = 253
+                        self.match(grammarDKNParser.T__18)
+                        self.state = 254
+                        self.expr(32)
                         pass
 
                     elif la_ == 2:
                         localctx = grammarDKNParser.MulDivModContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 242
-                        if not self.precpred(self._ctx, 29):
+                        self.state = 255
+                        if not self.precpred(self._ctx, 30):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 29)")
-                        self.state = 243
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 30)")
+                        self.state = 256
                         localctx.op = self._input.LT(1)
                         _la = self._input.LA(1)
-                        if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 1835008) != 0)):
+                        if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 7340032) != 0)):
                             localctx.op = self._errHandler.recoverInline(self)
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 244
-                        self.expr(30)
+                        self.state = 257
+                        self.expr(31)
                         pass
 
                     elif la_ == 3:
                         localctx = grammarDKNParser.SumaRestaContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 245
-                        if not self.precpred(self._ctx, 28):
+                        self.state = 258
+                        if not self.precpred(self._ctx, 29):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 28)")
-                        self.state = 246
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 29)")
+                        self.state = 259
                         localctx.op = self._input.LT(1)
                         _la = self._input.LA(1)
-                        if not(_la==16 or _la==21):
+                        if not(_la==18 or _la==23):
                             localctx.op = self._errHandler.recoverInline(self)
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 247
-                        self.expr(29)
+                        self.state = 260
+                        self.expr(30)
                         pass
 
                     elif la_ == 4:
                         localctx = grammarDKNParser.ComparacionContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 248
-                        if not self.precpred(self._ctx, 27):
+                        self.state = 261
+                        if not self.precpred(self._ctx, 28):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 27)")
-                        self.state = 249
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 28)")
+                        self.state = 262
                         localctx.op = self._input.LT(1)
                         _la = self._input.LA(1)
-                        if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 264241152) != 0)):
+                        if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 1056964608) != 0)):
                             localctx.op = self._errHandler.recoverInline(self)
                         else:
                             self._errHandler.reportMatch(self)
                             self.consume()
-                        self.state = 250
-                        self.expr(28)
+                        self.state = 263
+                        self.expr(29)
                         pass
 
                     elif la_ == 5:
                         localctx = grammarDKNParser.AndExprContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 251
-                        if not self.precpred(self._ctx, 26):
+                        self.state = 264
+                        if not self.precpred(self._ctx, 27):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 26)")
-                        self.state = 252
-                        self.match(grammarDKNParser.T__27)
-                        self.state = 253
-                        self.expr(27)
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 27)")
+                        self.state = 265
+                        self.match(grammarDKNParser.T__29)
+                        self.state = 266
+                        self.expr(28)
                         pass
 
                     elif la_ == 6:
                         localctx = grammarDKNParser.OrExprContext(self, grammarDKNParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 254
-                        if not self.precpred(self._ctx, 25):
+                        self.state = 267
+                        if not self.precpred(self._ctx, 26):
                             from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 25)")
-                        self.state = 255
-                        self.match(grammarDKNParser.T__28)
-                        self.state = 256
-                        self.expr(26)
+                            raise FailedPredicateException(self, "self.precpred(self._ctx, 26)")
+                        self.state = 268
+                        self.match(grammarDKNParser.T__30)
+                        self.state = 269
+                        self.expr(27)
                         pass
 
              
-                self.state = 261
+                self.state = 274
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,15,self._ctx)
 
@@ -2005,27 +2083,27 @@ class grammarDKNParser ( Parser ):
 
     def expr_sempred(self, localctx:ExprContext, predIndex:int):
             if predIndex == 0:
-                return self.precpred(self._ctx, 30)
+                return self.precpred(self._ctx, 31)
          
 
             if predIndex == 1:
-                return self.precpred(self._ctx, 29)
+                return self.precpred(self._ctx, 30)
          
 
             if predIndex == 2:
-                return self.precpred(self._ctx, 28)
+                return self.precpred(self._ctx, 29)
          
 
             if predIndex == 3:
-                return self.precpred(self._ctx, 27)
+                return self.precpred(self._ctx, 28)
          
 
             if predIndex == 4:
-                return self.precpred(self._ctx, 26)
+                return self.precpred(self._ctx, 27)
          
 
             if predIndex == 5:
-                return self.precpred(self._ctx, 25)
+                return self.precpred(self._ctx, 26)
          
 
 

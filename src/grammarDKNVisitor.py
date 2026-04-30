@@ -1,4 +1,4 @@
-# Generated from grammarDKN.g4 by ANTLR 4.13.2
+# Generated from grammar/grammarDKN.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .grammarDKNParser import grammarDKNParser
@@ -61,6 +61,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by grammarDKNParser#Asignacion.
     def visitAsignacion(self, ctx:grammarDKNParser.AsignacionContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by grammarDKNParser#IndexAssign.
+    def visitIndexAssign(self, ctx:grammarDKNParser.IndexAssignContext):
         return self.visitChildren(ctx)
 
 
@@ -176,6 +181,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by grammarDKNParser#TanFunc.
     def visitTanFunc(self, ctx:grammarDKNParser.TanFuncContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by grammarDKNParser#IndexAccess.
+    def visitIndexAccess(self, ctx:grammarDKNParser.IndexAccessContext):
         return self.visitChildren(ctx)
 
 

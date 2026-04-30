@@ -968,7 +968,7 @@ def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000
 
 
 def _normalize_return_keyword(code: str) -> str:
-    """Adapta `retornar` al lexer actual y bloquea el uso de `return`."""
+    """Valida palabras clave y bloquea el uso de `return`."""
     i = 0
     n = len(code)
     out = []
@@ -1019,7 +1019,7 @@ def _normalize_return_keyword(code: str) -> str:
                 raise DKNParseError(
                     "La palabra clave 'return' ya no es válida. Usa 'retornar'."
                 )
-            out.append("return" if word == "retornar" else word)
+            out.append(word)
             continue
 
         out.append(ch)
