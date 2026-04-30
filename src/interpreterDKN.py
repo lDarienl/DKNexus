@@ -105,12 +105,16 @@ class EvalVisitor(grammarDKNVisitor):
 
     def _assign_var(self, name, value):
         new_addr = self.heap.allocate(value)
+        found_scope = None
         for d in reversed(self.scopes):
             if name in d:
-                old_addr = d[name]
-                d[name] = new_addr
-                self.heap.free(old_addr)
-                return self.heap.read(new_addr)
+                found_scope = d
+                break
+        if found_scope is not None:
+            old_addr = found_scope[name]
+            found_scope[name] = new_addr
+            self.heap.free(old_addr)
+            return self.heap.read(new_addr)
         self.scopes[-1][name] = new_addr
         return self.heap.read(new_addr)
 
@@ -253,6 +257,24 @@ class EvalVisitor(grammarDKNVisitor):
         name = ctx.VARIABLE().getText()
         value = self.visit(self._expr0(ctx))
         return self._assign_var(name, value)
+
+    def visitIndexAssign(self, ctx):
+        if self._returned:
+            return None
+        self._bump_instruction()
+        name = ctx.VARIABLE().getText()
+        container = self._lookup_var(name)
+        if not isinstance(container, list):
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista.")
+        idx_raw = self.visit(ctx.expr(0))
+        idx = self._coerce_int_index(idx_raw, "index")
+        if idx < 0 or idx >= len(container):
+            raise DKNRuntimeError(
+                f"Error de índice: posición {idx} fuera de rango para '{name}' (longitud {len(container)})."
+            )
+        value = self.visit(ctx.expr(1))
+        container[idx] = value
+        return value
 
     def visitAssignExpr(self, ctx):
         if self._returned:
@@ -424,6 +446,19 @@ class EvalVisitor(grammarDKNVisitor):
         # Quitar comillas de los extremos y desescapar \"
         inner = raw[1:-1].replace('\\"', '"')
         return inner
+
+    def visitIndexAccess(self, ctx):
+        name = ctx.VARIABLE().getText()
+        container = self._lookup_var(name)
+        if not isinstance(container, list):
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista.")
+        idx_raw = self.visit(ctx.expr())
+        idx = self._coerce_int_index(idx_raw, "index")
+        if idx < 0 or idx >= len(container):
+            raise DKNRuntimeError(
+                f"Error de índice: posición {idx} fuera de rango para '{name}' (longitud {len(container)})."
+            )
+        return container[idx]
 
     def visitParens(self, ctx):
         return self.visit(ctx.expr())
@@ -821,14 +856,22 @@ class EvalVisitor(grammarDKNVisitor):
         raise DKNRuntimeError(f"Operador de comparación inválido: {op}")
 
     def visitPotencia(self, ctx):
+        self._bump_instruction()
         left = self._require_number(self.visit(ctx.expr(0)))
         right = self._require_number(self.visit(ctx.expr(1)))
+        if isinstance(left, bool) or isinstance(right, bool):
+            raise DKNRuntimeError("Error de Tipo: la potencia requiere operandos numéricos reales.")
         if left == 0 and right == 0:
             raise DKNRuntimeError("Error matemático: 0 ^ 0 es indeterminado.")
         if left == 0 and right < 0:
             raise DKNRuntimeError("Error matemático: 0 elevado a exponente negativo (división por cero).")
         try:
-            return self._reject_nan(left ** right)
+            out = left ** right
+            if isinstance(out, complex):
+                raise DKNRuntimeError(
+                    "Error de Dominio: la potencia produce un resultado complejo (fuera de los reales)."
+                )
+            return self._reject_nan(out)
         except OverflowError:
             raise DKNRuntimeError("Error de Desbordamiento: El resultado es demasiado grande para ser procesado.")
 

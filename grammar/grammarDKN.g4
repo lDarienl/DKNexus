@@ -21,6 +21,7 @@ statement
     | 'enqueue' '(' VARIABLE ',' expr ')' ';'                       # QueueEnqueueStmt
     | expr ';'                                                      # PrintExpr
     | VARIABLE '=' expr ';'                                         # Asignacion
+    | VARIABLE '[' expr ']' '=' expr ';'                            # IndexAssign
     | 'if' '(' expr ')' '{' statement+ '}'                          # IfStmt
     | 'for' '(' expr ';' expr ';' expr ')' '{' statement+ '}'       # ForStmt
     | 'while' '(' expr ')' '{' statement+ '}'                       # WhileStmt
@@ -62,6 +63,7 @@ expr
     | INF                               # InfConst
     | NUMBER                            # Num
     | STRING                            # StringLiteral
+    | VARIABLE '[' expr ']'             # IndexAccess
     | VARIABLE '(' (expr (',' expr)*)? ')'  # FuncCall
     | VARIABLE                          # Var
     ;
