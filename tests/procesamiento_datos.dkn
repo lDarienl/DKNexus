@@ -1,0 +1,15 @@
+// Ejecutar con cwd = raíz del repo (ruta relativa al CSV).
+m = load_csv("tests/sample_data.csv");
+print(m);
+c0 = get_col(m, 0);
+print(c0);
+promedio = mean(m);
+print(promedio);
+print(sum(c0));
+print(min(c0));
+print(max(c0));
+n0 = normalize(c0);
+print(n0);
+m2 = set_col(m, 1, [100, 200, 300]);
+print(m2);
+dump_memory();

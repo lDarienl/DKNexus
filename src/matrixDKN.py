@@ -160,3 +160,47 @@ def matrix_mul_2x2(a, b):
 
 def matrix_inv_2x2(m):
     return matrix_inv(m)
+
+
+def get_column(m, col_index):
+    """Extrae la columna `col_index` (0-based) como lista de longitud nfilas."""
+    dims = matrix_dimensions(m)
+    if dims is None:
+        raise ValueError("get_col: se requiere una matriz válida (n x m, numérica).")
+    rows, cols = dims
+    if not isinstance(col_index, int) or isinstance(col_index, bool):
+        raise ValueError("get_col: el índice de columna debe ser un entero.")
+    if col_index < 0 or col_index >= cols:
+        raise ValueError(
+            f"get_col: índice de columna fuera de rango: {col_index} (válido 0..{cols - 1})."
+        )
+    return [m[i][col_index] for i in range(rows)]
+
+
+def set_column(m, col_index, vector):
+    """
+    Devuelve una **nueva** matriz con la columna `col_index` reemplazada por `vector`.
+    `vector` debe tener longitud nfilas.
+    """
+    dims = matrix_dimensions(m)
+    if dims is None:
+        raise ValueError("set_col: se requiere una matriz válida (n x m, numérica).")
+    rows, cols = dims
+    if not isinstance(col_index, int) or isinstance(col_index, bool):
+        raise ValueError("set_col: el índice de columna debe ser un entero.")
+    if col_index < 0 or col_index >= cols:
+        raise ValueError(
+            f"set_col: índice de columna fuera de rango: {col_index} (válido 0..{cols - 1})."
+        )
+    if not isinstance(vector, list) or matrix_dimensions(vector) is not None:
+        raise ValueError("set_col: el tercer argumento debe ser un vector (lista 1D), no una matriz.")
+    if len(vector) != rows:
+        raise ValueError(
+            f"set_col: el vector tiene longitud {len(vector)}, se esperaban {rows} filas."
+        )
+    if not all(_is_number(v) for v in vector):
+        raise ValueError("set_col: el vector debe contener solo valores numéricos.")
+    out = [[m[i][k] for k in range(cols)] for i in range(rows)]
+    for i in range(rows):
+        out[i][col_index] = vector[i]
+    return out

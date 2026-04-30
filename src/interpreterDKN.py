@@ -4,6 +4,7 @@ Intérprete del DSL DKNexus usando ANTLR4 y patrón Visitor.
 Ejecutar desde el directorio del proyecto (donde están los .py generados por ANTLR).
 """
 
+import dataDKN
 import mathDKN
 import matrixDKN
 from heapDKN import DKNMemoryError, HeapManager
@@ -173,6 +174,23 @@ class EvalVisitor(grammarDKNVisitor):
         if not isinstance(value, (int, float)):
             raise DKNRuntimeError("Tipo de dato inválido: Se esperaba un número.")
         return value
+
+    def _coerce_int_index(self, value, builtin_name: str):
+        """Índice entero para columnas (rechaza bool y floats no enteros)."""
+        if isinstance(value, bool):
+            raise DKNRuntimeError(
+                f"{builtin_name}: el índice de columna no puede ser un booleano."
+            )
+        if not isinstance(value, (int, float)):
+            raise DKNRuntimeError(
+                f"{builtin_name}: el índice de columna debe ser un número entero."
+            )
+        fv = float(value)
+        if fv != int(fv):
+            raise DKNRuntimeError(
+                f"{builtin_name}: el índice de columna debe ser un entero (se recibió {value!r})."
+            )
+        return int(fv)
 
     def _reject_nan(self, value):
         # NaN es el único valor que no es igual a sí mismo en Python
@@ -504,6 +522,85 @@ class EvalVisitor(grammarDKNVisitor):
             except OSError as e:
                 raise DKNRuntimeError(f"No se pudo escribir el archivo: {e}") from e
             return None
+
+        if name == "load_csv":
+            if len(args) != 1:
+                raise DKNRuntimeError("load_csv(ruta) requiere exactamente un argumento (string).")
+            path = self._require_str(args[0], "ruta")
+            try:
+                mat = dataDKN.load_csv_matrix(path, self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(f"load_csv: {e}") from e
+            return mat
+
+        if name == "get_col":
+            if len(args) != 2:
+                raise DKNRuntimeError("get_col(matriz, indice) requiere exactamente dos argumentos.")
+            mat, idx_raw = args[0], args[1]
+            j = self._coerce_int_index(idx_raw, "get_col")
+            try:
+                col = matrixDKN.get_column(mat, j)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+            for _ in col:
+                self._bump_instruction()
+            return col
+
+        if name == "set_col":
+            if len(args) != 3:
+                raise DKNRuntimeError("set_col(matriz, indice, vector) requiere exactamente tres argumentos.")
+            mat, idx_raw, vec = args[0], args[1], args[2]
+            j = self._coerce_int_index(idx_raw, "set_col")
+            try:
+                out = matrixDKN.set_column(mat, j, vec)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+            dims = matrixDKN.matrix_dimensions(out)
+            if dims is not None:
+                rows, cols = dims
+                for _ in range(rows * cols):
+                    self._bump_instruction()
+            return out
+
+        if name == "sum":
+            if len(args) != 1:
+                raise DKNRuntimeError("sum(x) requiere exactamente un argumento (lista o matriz).")
+            try:
+                return mathDKN.dk_sum(args[0], self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+
+        if name == "mean":
+            if len(args) != 1:
+                raise DKNRuntimeError("mean(x) requiere exactamente un argumento (lista o matriz).")
+            try:
+                return mathDKN.dk_mean(args[0], self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+
+        if name == "min":
+            if len(args) != 1:
+                raise DKNRuntimeError("min(x) requiere exactamente un argumento (lista o matriz).")
+            try:
+                return mathDKN.dk_min(args[0], self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+
+        if name == "max":
+            if len(args) != 1:
+                raise DKNRuntimeError("max(x) requiere exactamente un argumento (lista o matriz).")
+            try:
+                return mathDKN.dk_max(args[0], self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
+
+        if name == "normalize":
+            if len(args) != 1:
+                raise DKNRuntimeError("normalize(vector) requiere exactamente un argumento.")
+            try:
+                return mathDKN.normalize_vector(args[0], self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(str(e)) from e
 
         if name not in self.functions:
             raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")

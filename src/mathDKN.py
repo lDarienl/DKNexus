@@ -1,3 +1,6 @@
+import matrixDKN as _matrixDKN
+
+
 def compute_pi(iterations=2000):
     """
     Aproximación de pi por la serie de Nilakantha:
@@ -169,3 +172,105 @@ def tanh(x):
     if denom == 0:
         return 0.0
     return (ex - enx) / denom
+
+
+# --- Estadística descriptiva y normalización (sin librerías externas) ---
+
+
+def _is_real_number(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _iter_flat_numeric(data, bump):
+    """
+    Recorre elementos de una lista 1D o de una matriz (por filas).
+    Exige tipos numéricos; `bump` se invoca por cada elemento visitado.
+    """
+    if _matrixDKN.is_matrix(data):
+        for row in data:
+            for v in row:
+                bump()
+                if not _is_real_number(v):
+                    raise ValueError(
+                        "Operación estadística: todos los elementos deben ser numéricos (no strings ni bool)."
+                    )
+                yield v
+        return
+    if isinstance(data, list):
+        for v in data:
+            bump()
+            if not _is_real_number(v):
+                raise ValueError(
+                    "Operación estadística: todos los elementos deben ser numéricos (no strings ni bool)."
+                )
+            yield v
+        return
+    raise ValueError("Operación estadística: se esperaba una lista o una matriz.")
+
+
+def dk_sum(data, bump=lambda: None):
+    s = 0
+    for v in _iter_flat_numeric(data, bump):
+        s += v
+    return s
+
+
+def dk_mean(data, bump=lambda: None):
+    total = 0.0
+    n = 0
+    for v in _iter_flat_numeric(data, bump):
+        total += float(v)
+        n += 1
+    if n == 0:
+        raise ValueError("mean: la colección está vacía.")
+    return total / n
+
+
+def dk_min(data, bump=lambda: None):
+    it = _iter_flat_numeric(data, bump)
+    try:
+        m = next(it)
+    except StopIteration:
+        raise ValueError("min: la colección está vacía.") from None
+    for v in it:
+        m = v if v < m else m
+    return m
+
+
+def dk_max(data, bump=lambda: None):
+    it = _iter_flat_numeric(data, bump)
+    try:
+        m = next(it)
+    except StopIteration:
+        raise ValueError("max: la colección está vacía.") from None
+    for v in it:
+        m = v if v > m else m
+    return m
+
+
+def normalize_vector(vec, bump=lambda: None):
+    """
+    Normalización min-max a [0, 1]: (x - min) / (max - min).
+    Solo vectores (lista 1D numérica); no matrices.
+    """
+    if not isinstance(vec, list) or _matrixDKN.is_matrix(vec):
+        raise ValueError("normalize: se esperaba un vector (lista 1D numérica).")
+    if not vec:
+        raise ValueError("normalize: el vector está vacío.")
+    vals = []
+    for v in vec:
+        bump()
+        if not _is_real_number(v):
+            raise ValueError("normalize: todos los elementos deben ser numéricos.")
+        vals.append(float(v))
+    lo = vals[0]
+    hi = vals[0]
+    for x in vals[1:]:
+        if x < lo:
+            lo = x
+        if x > hi:
+            hi = x
+    span = hi - lo
+    if span == 0:
+        return [0.0 for _ in vals]
+    return [(x - lo) / span for x in vals]
