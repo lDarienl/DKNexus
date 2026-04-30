@@ -647,9 +647,11 @@ class EvalVisitor(grammarDKNVisitor):
 
         saved_ret = self._returned
         saved_val = self.return_value
+        old_scopes = self.scopes
+        # Aislamiento de función: solo alcance global + alcance local propio.
+        self.scopes = [old_scopes[0], {}]
         self._returned = False
         self.return_value = None
-        self._push_scope()
         result = None
         try:
             for pname, val in zip(params, args):
@@ -660,7 +662,7 @@ class EvalVisitor(grammarDKNVisitor):
                 self.visit(st)
             result = self.return_value if self._returned else None
         finally:
-            self._pop_scope()
+            self.scopes = old_scopes
             self._returned = saved_ret
             self.return_value = saved_val
         return result
