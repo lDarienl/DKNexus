@@ -1,0 +1,16 @@
+print("--- TEST DE LIMITES MATEMATICOS ---");
+
+// 1. Logaritmo de cero o negativo (Debe fallar)
+// print(log(0)); 
+// print(log(-1));
+
+// 2. Raíz par de número negativo (Debe fallar)
+// print(root(-4, 2));
+
+// 3. Desbordamiento por potencia (Overflow)
+// x = 10 ^ 500;
+
+// 4. Precisión de Tangente cerca de PI/2
+// Usamos el blindaje de PI/2 implementado
+print("Tangente de (PI/2) - 0.0001:");
+print(tan(PI / 2 - 0.0001));

@@ -1,0 +1,26 @@
+// --- TEST DE CARGA DE DATOS Y RESILIENCIA ---
+
+print("--- 1. Probando archivo válido (sample_data.csv) ---");
+
+// Cargamos los datos: 1,2,10 | 4,5,20 | 7,8,30
+datos = load_csv("../tests/sample_data.csv");
+print("Matriz cargada:");
+print(datos);
+
+// Verificamos que podemos operar con ellos
+// Extraemos la tercera columna (índice 2) que tiene [10, 20, 30]
+columna_c = get_col(datos, 2);
+promedio = mean(columna_c);
+
+print("Promedio de la columna 3 (esperado 20.0):");
+print(promedio);
+
+print("");
+print("--- 2. Probando archivo malformado (sample_data_bad.csv) ---");
+print("Se espera un error de fila malformada a continuación:");
+
+// Esta línea disparará el DKNRuntimeError
+// porque la fila 2 solo tiene 2 columnas mientras la primera tiene 3.
+data_error = load_csv("../tests/sample_data_bad.csv");
+
+print("Este mensaje no debería aparecer si la resiliencia funciona.");

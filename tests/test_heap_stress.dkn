@@ -1,0 +1,19 @@
+print("--- TEST DE STRESS DE HEAP ---");
+
+// 1. Crear una matriz que casi llene los 1024 slots
+// Una matriz de 32x32 ocupa exactamente 1024 slots
+m_grande = [];
+for (i = 0; i < 32; i = i + 1) {
+    fila = [];
+    for (j = 0; j < 32; j = j + 1) {
+        push(fila, 1);
+    }
+    push(m_grande, fila);
+}
+
+print("Matriz 32x32 creada (1024 slots).");
+dump_memory();
+
+// 2. Intentar agregar un solo dato más debe disparar DKNMemoryError
+print("Intentando exceder el Heap...");
+x = 1;

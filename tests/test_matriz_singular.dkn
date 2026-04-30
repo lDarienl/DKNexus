@@ -1,0 +1,10 @@
+print("--- TEST DE MATRIZ SINGULAR ---");
+
+// Una matriz donde una fila es múltiplo de otra no tiene inversa
+S = [[1, 2, 3], 
+     [4, 5, 6], 
+     [2, 4, 6]]; 
+
+print("Intentando invertir matriz singular...");
+// Esto debe lanzar: "Error de Dominio: Matriz singular (determinante = 0)"
+inv_S = inv(S);

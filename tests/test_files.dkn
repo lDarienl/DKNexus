@@ -1,0 +1,11 @@
+// 1. Crear el archivo inicial
+write("nota.txt", "Hola mundo");
+
+// 2. Modificar (Leer + Concatenar + Escribir)
+contenido_viejo = read("nota.txt");
+nuevo_contenido = contenido_viejo + " - Editado desde DKNexus";
+write("nota.txt", nuevo_contenido);
+
+// 3. Verificar
+resultado = read("nota.txt");
+print(resultado);

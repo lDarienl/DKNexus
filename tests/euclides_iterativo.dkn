@@ -1,0 +1,11 @@
+function euclides(a, b) {
+    while (b != 0) {
+        residuo = a % b;
+        a = b;
+        b = residuo;
+    }
+    return a;
+}
+
+print("Resultado Euclides (48, 18):");
+print(euclides(48, 18));
