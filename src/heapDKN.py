@@ -2,6 +2,8 @@
 Simulación de memoria manual (heap + direcciones) para el intérprete DKNexus.
 """
 
+import matrixDKN
+
 class DKNMemoryError(Exception):
     """El heap no puede alojar más datos (slots agotados)."""
 
