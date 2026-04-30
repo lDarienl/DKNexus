@@ -243,9 +243,7 @@ class EvalVisitor(grammarDKNVisitor):
         if self._returned:
             return None
         self._bump_instruction()
-        val = self.visit(self._expr0(ctx))
-        if val is not None:
-            print(val)
+        self.visit(self._expr0(ctx))
         return None
 
     def visitAsignacion(self, ctx):
