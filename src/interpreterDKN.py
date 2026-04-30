@@ -745,6 +745,13 @@ class EvalVisitor(grammarDKNVisitor):
                 return matrixDKN.matrix_add(left, right) if op == '+' else matrixDKN.matrix_sub(left, right)
             except ValueError as e:
                 raise DKNRuntimeError(str(e))
+        if op == '+':
+            if isinstance(left, str) and isinstance(right, str):
+                return left + right
+            if isinstance(left, str) != isinstance(right, str):
+                raise DKNRuntimeError(
+                    "No se pueden sumar tipos diferentes: un número y un string."
+                )
         left = self._require_number(left)
         right = self._require_number(right)
         res = left + right if op == '+' else left - right
@@ -917,10 +924,14 @@ def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000
 def start_repl():
     """Bucle de consola interactiva (REPL)."""
     print("Escribe código y una línea vacía para ejecutar. Ejemplo: 3 + 5 ;")
+    print("Escribe 'exit' o 'quit' para salir.")
     buf = []
     try:
         while True:
             line = input("> " if not buf else "")
+            if line.strip().lower() in ("exit", "quit"):
+                print("Saliendo de DKNexus... ¡Adiós!")
+                return
             if line == "" and buf:
                 try:
                     ret = run("\n".join(buf))
@@ -937,33 +948,40 @@ def start_repl():
     except EOFError:
         if buf:
             run("\n".join(buf))
+    except KeyboardInterrupt:
+        print("\nSaliendo de DKNexus... ¡Adiós!")
+        return
 
 
 def main():
     # Todo entra por input(), sin sys.argv.
-    print("--- DKNexus DSL Interpreter ---")
-    print("Para ejecutar un archivo, escribe la ruta (ej: prueba.dkn).")
-    print("Para entrar a la consola interactiva, presiona Enter.")
+    try:
+        print("--- DKNexus DSL Interpreter ---")
+        print("Para ejecutar un archivo, escribe la ruta (ej: prueba.dkn).")
+        print("Para entrar a la consola interactiva, presiona Enter.")
 
-    path = input(">> ").strip()
+        path = input(">> ").strip()
 
-    if path:
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                codigo = f.read()
-            print(f"\n--- Ejecutando: {path} ---")
-            ret = run(codigo)
-            if ret is not None:
-                print(ret)
-            print("--- Fin de ejecución ---\n")
-        except FileNotFoundError:
-            print(f"Error: No se encontró el archivo '{path}'.")
-        except (DKNParseError, DKNRuntimeError, DKNMemoryError) as e:
-            print("Error durante la ejecución:", e)
-        except Exception as e:
-            print("Ocurrió un error inesperado:", e)
-    else:
-        start_repl()
+        if path:
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    codigo = f.read()
+                print(f"\n--- Ejecutando: {path} ---")
+                ret = run(codigo)
+                if ret is not None:
+                    print(ret)
+                print("--- Fin de ejecución ---\n")
+            except FileNotFoundError:
+                print(f"Error: No se encontró el archivo '{path}'.")
+            except (DKNParseError, DKNRuntimeError, DKNMemoryError) as e:
+                print("Error durante la ejecución:", e)
+            except Exception as e:
+                print("Ocurrió un error inesperado:", e)
+        else:
+            start_repl()
+    except KeyboardInterrupt:
+        print("\nSaliendo de DKNexus... ¡Adiós!")
+        return
 
 
 if __name__ == "__main__":
