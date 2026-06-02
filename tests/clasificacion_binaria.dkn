@@ -1,0 +1,86 @@
+// --- PASO 3 ML: Clasificacion Binaria (Perceptron y Regresion Logistica) ---
+// Objetivo: aprender la compuerta logica OR con dos modelos distintos.
+// W[0] = bias, W[1] = peso de X1, W[2] = peso de X2.
+
+print("--- Clasificacion Binaria: Compuerta OR ---");
+
+// Dataset de la compuerta OR
+X1 = [0.0, 0.0, 1.0, 1.0];
+X2 = [0.0, 1.0, 0.0, 1.0];
+Y  = [0.0, 1.0, 1.0, 1.0];
+
+n = len(Y);
+
+// ====================================================================
+// Parte A: El Perceptron Clasico (funcion escalon, actualizacion online)
+// ====================================================================
+print("--- Parte A: Perceptron Clasico ---");
+
+W_perc = [0.0, 0.0, 0.0];
+lr_perc = 0.1;
+
+for (epoca = 0; epoca < 20; epoca = epoca + 1) {
+    for (i = 0; i < n; i = i + 1) {
+        z = W_perc[0] + W_perc[1] * X1[i] + W_perc[2] * X2[i];
+        pred = escalon(z);
+        error = pred - Y[i];
+        W_perc = update_weights(W_perc, [error, error * X1[i], error * X2[i]], lr_perc);
+    }
+}
+
+print("Pesos finales Perceptron (W[0]=bias, W[1], W[2]):");
+print(W_perc);
+
+// ====================================================================
+// Parte B: Regresion Logistica (sigmoide, gradiente descendente por lotes)
+// ====================================================================
+print("--- Parte B: Regresion Logistica ---");
+
+W_log = [0.0, 0.0, 0.0];
+lr_log = 0.5;
+
+for (epoca = 0; epoca < 100; epoca = epoca + 1) {
+    grad = [0.0, 0.0, 0.0];
+    for (i = 0; i < n; i = i + 1) {
+        z = W_log[0] + W_log[1] * X1[i] + W_log[2] * X2[i];
+        prob = sigmoid(z);
+        error = prob - Y[i];
+        grad[0] = grad[0] + error;
+        grad[1] = grad[1] + error * X1[i];
+        grad[2] = grad[2] + error * X2[i];
+    }
+    W_log = update_weights(W_log, grad, lr_log);
+}
+
+print("Pesos finales Regresion Logistica (W[0]=bias, W[1], W[2]):");
+print(W_log);
+
+// ====================================================================
+// Validacion: predicciones finales y matriz de confusion de cada modelo
+// ====================================================================
+
+print("--- Validacion Perceptron (Matriz de Confusion) ---");
+pred_perc = [];
+for (i = 0; i < n; i = i + 1) {
+    z = W_perc[0] + W_perc[1] * X1[i] + W_perc[2] * X2[i];
+    if (escalon(z) >= 0.5) {
+        push(pred_perc, 1);
+    }
+    if (escalon(z) < 0.5) {
+        push(pred_perc, 0);
+    }
+}
+matriz_confusion(Y, pred_perc);
+
+print("--- Validacion Regresion Logistica (Matriz de Confusion) ---");
+pred_log = [];
+for (i = 0; i < n; i = i + 1) {
+    z = W_log[0] + W_log[1] * X1[i] + W_log[2] * X2[i];
+    if (sigmoid(z) >= 0.5) {
+        push(pred_log, 1);
+    }
+    if (sigmoid(z) < 0.5) {
+        push(pred_log, 0);
+    }
+}
+matriz_confusion(Y, pred_log);

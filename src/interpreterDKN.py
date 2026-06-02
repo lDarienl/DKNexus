@@ -954,6 +954,25 @@ class EvalVisitor(grammarDKNVisitor):
                 total += a[i] * b[i]
             return total
 
+        # ---- Funciones de activacion (clasificacion binaria) ----
+
+        if name == "sigmoid":
+            if len(args) != 1:
+                raise DKNRuntimeError("sigmoid(z) requiere exactamente un argumento (número).")
+            z = float(self._require_number(args[0]))
+            # Proteccion contra overflow de exp(): saturamos en los extremos.
+            if z < -500.0:
+                return 0.0
+            if z > 500.0:
+                return 1.0
+            return 1.0 / (1.0 + mathDKN.E ** -z)
+
+        if name == "escalon":
+            if len(args) != 1:
+                raise DKNRuntimeError("escalon(z) requiere exactamente un argumento (número).")
+            z = float(self._require_number(args[0]))
+            return 1.0 if z >= 0.0 else 0.0
+
         if name not in self.functions:
             raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")
 
