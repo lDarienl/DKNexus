@@ -1,0 +1,25 @@
+// --- PASO 5 ML: Agrupamiento (K-Means), K-Vecinos (KNN) y Precision ---
+// CERO librerias externas: distancias con mathDKN.sqrt y operaciones nativas.
+
+print("--- Metrica de Precision ---");
+Y_r = [1.0, 0.0, 1.0, 1.0];
+Y_p = [1.0, 1.0, 0.0, 1.0];
+print("Precision (TP / (TP + FP)):");
+print(precision(Y_r, Y_p));
+
+print("--- Algoritmo K-Vecinos (KNN) ---");
+// Dos grupos: cercano al origen (clase 0) y lejano (clase 1)
+X_train = [[1.0, 1.0], [1.5, 1.0], [8.0, 8.0], [9.0, 8.0]];
+Y_train = [0.0, 0.0, 1.0, 1.0];
+
+x_nuevo = [8.5, 8.5];
+pred_knn = knn(X_train, Y_train, x_nuevo, 3);
+print("Clase predicha para [8.5, 8.5] (esperado 1.0):");
+print(pred_knn);
+
+print("--- Algoritmo K-Means (Agrupamiento no supervisado) ---");
+// Dos grupos claros: {1, 2} y {10, 11}
+X_cluster = [[1.0], [2.0], [10.0], [11.0]];
+etiquetas = kmeans(X_cluster, 2, 10);
+print("Etiquetas de cluster asignadas:");
+print(etiquetas);

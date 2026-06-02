@@ -1,435 +1,638 @@
 # DKNexus DSL
 
-**DKNexus** es un **Lenguaje de Dominio Específico (DSL)** orientado a flujos de trabajo de **Deep Learning y cómputo numérico**, construido con:
+**DKNexus** es un **Lenguaje de Dominio Específico (DSL)** orientado a flujos de
+trabajo de **Machine Learning y Deep Learning**, construido **desde cero** y con
+**cero librerías externas de cálculo** (sin `numpy`, sin `scikit-learn`, sin
+`matplotlib`, sin `math`).
 
-- **ANTLR4** para análisis léxico/sintáctico.
-- **Python 3** para el intérprete (`Visitor`).
-- Librerías matemáticas propias sin dependencias externas de álgebra/cálculo.
-
-Este documento describe la implementación completa hasta el **Segundo Corte**.
-
----
-
-## Introducción y Propósito
-
-DKNexus nace para ejecutar programas numéricos con:
-
-1. **Semántica controlada** (gramática fija y validación estricta).
-2. **Gestión explícita de memoria** (Heap y punteros).
-3. **Portabilidad** (cero dependencia de `math`/`numpy` para la base del lenguaje).
-4. **Valor educativo** (algoritmos implementados desde cero).
-
-Su objetivo académico es demostrar cómo construir un DSL robusto para problemas cercanos a Deep Learning (operaciones numéricas, álgebra lineal, control de flujo y estructuras de datos) sin delegar toda la complejidad al runtime de Python.
-
----
-
-## Arquitectura de Memoria (Heap + Punteros)
-
-La capa más fuerte de DKNexus es su modelo de memoria manual:
-
-| Componente | Rol |
+| Capa | Tecnología |
 |---|---|
-| `HeapManager` (`src/heapDKN.py`) | Simula RAM con direcciones hex (`0x001`, `0x002`, ...) |
-| `self.scopes` | Pila de ámbitos; cada variable guarda un **puntero** (no el valor directo) |
-| `_assign_var` | Reserva en heap, guarda valor, devuelve/actualiza dirección |
-| `_lookup_var` | Resuelve nombre -> puntero -> valor en heap |
-| `_pop_scope` | Libera automáticamente celdas del ámbito que muere |
+| Análisis léxico / sintáctico | **ANTLR 4** (`-Dlanguage=Python3 -visitor`) |
+| Intérprete | **Python 3** (patrón *Visitor* sobre el AST) |
+| Núcleo numérico | **C** (`dknumpy.c`) con *binding* `ctypes` + *fallback* en Python |
+| Álgebra / matemática | Librerías propias (`mathDKN`, `matrixDKN`) |
+| Persistencia | **Redis** con *fallback* a disco (`persistDKN`) |
+| Memoria | Heap simulado con punteros y *scopes* (`heapDKN`) |
 
-### Heap dinámico + bloques contiguos en C (DKNumpy)
-
-Para soportar vectores y matrices grandes de Machine Learning, el heap se rediseñó:
-
-- **Ya no hay límite rígido de 1024 slots.** Por defecto el heap es **dinámico**
-  (`max_slots=None`): crece según se necesite. El tope sigue siendo configurable
-  para pruebas (`HeapManager(max_slots=...)`).
-- Las **matrices ya no se guardan como listas de listas** dentro del heap. Se
-  delegan al binding de C (`dknumpyDKN`): se reserva un **bloque CONTIGUO** de
-  memoria con `malloc` y el heap **registra el puntero** de ese bloque
-  (`self.pointers[addr]`). `dump_memory()` muestra ese puntero como
-  `@bloque_C=0x...`.
-- La lectura (`read`) reconstruye la lista de listas a partir del bloque contiguo
-  para el resto del intérprete (compatibilidad total con el lenguaje).
-
-### ¿Por qué este modelo?
-
-No se delega el control total al recolector de Python. Este enfoque permite:
-
-- comportamiento más **determinista** de recursos,
-- trazabilidad de referencias activas,
-- validación de presión de memoria por **slots**,
-- simulación realista de un runtime de lenguaje.
-
-### Pila de Ámbitos (Scope Stack)
-
-El intérprete mantiene una pila:
-
-```text
-scopes = [
-  { ... global ... },
-  { ... función actual ... },
-  ...
-]
-```
-
-- Al entrar a función: `_push_scope()`
-- Al salir: `_pop_scope()`
-- La búsqueda de variables es de adentro hacia afuera (resolución léxica anidada).
-
-Esto habilita recursividad y aislamiento local/global.
-
-### Gestión por slots y liberación
-
-El heap reporta el uso en *slots* (peso aproximado de cada celda):
-
-- número/bool/None: `1` slot
-- matriz: `filas * columnas` slots
-- string/lista: peso derivado del contenido
-
-Por defecto el heap es **dinámico** (no lanza `DKNMemoryError` por tamaño). Si se
-fija un tope explícito (`HeapManager(max_slots=N)`) y se excede, se lanza
-**`DKNMemoryError`**.
-
-Al destruir un scope, sus direcciones se liberan en `_pop_scope` (GC básico por
-vida de ámbito). Para matrices, esto llama además al `free` de C que libera el
-bloque contiguo (`dknp_free`).
+> Referencias de diseño: la API de alto nivel imita a **scikit-learn**
+> (`fit` / `predict`), el núcleo numérico imita a **NumPy** (memoria contigua), y
+> la regresión / backprop siguen el enfoque del libro **Grokking** (gradiente
+> descendente iterativo).
 
 ---
 
-## DKNumpy: núcleo numérico con binding de C (`ctypes`)
+## Índice
 
-`DKNumpy` (`src/dknumpy.c` + `src/dknumpyDKN.py`) reemplaza el almacenamiento de
-matrices como listas de listas por **memoria contigua**:
+1. [¿Qué es DKNexus y para qué sirve?](#1-qué-es-dknexus-y-para-qué-sirve)
+2. [Cumplimiento por cortes](#2-cumplimiento-por-cortes)
+3. [Arquitectura general (pipeline)](#3-arquitectura-general-pipeline)
+4. [Instalación y uso](#4-instalación-y-uso)
+5. [Referencia del lenguaje (sintaxis)](#5-referencia-del-lenguaje-sintaxis)
+6. [Librería estándar (built-ins)](#6-librería-estándar-built-ins)
+7. [DKNumpy: núcleo numérico en C](#7-dknumpy-núcleo-numérico-en-c)
+8. [Gestión de memoria y seguridad](#8-gestión-de-memoria-y-seguridad)
+9. [Machine Learning y Deep Learning](#9-machine-learning-y-deep-learning)
+10. [Estructura del proyecto](#10-estructura-del-proyecto)
+11. [Tests incluidos](#11-tests-incluidos)
+12. [Qué puede y qué NO puede hacer (límites)](#12-qué-puede-y-qué-no-puede-hacer-límites)
+13. [Pendientes / Roadmap](#13-pendientes--roadmap)
+14. [Referencias y licencia](#14-referencias-y-licencia)
 
-- Una matriz `A(filas, columnas)` se aplana en un arreglo plano de
-  `filas * columnas` posiciones reservado con `malloc` en C.
-- El acceso al elemento `(i, j)` se resuelve por aritmética de punteros:
+---
+
+## 1. ¿Qué es DKNexus y para qué sirve?
+
+DKNexus es un lenguaje de programación pequeño pero completo, diseñado con un
+objetivo académico: **demostrar cómo se construye un lenguaje y su runtime**, y
+**cómo se implementan los algoritmos de ML/DL por dentro**, sin esconder la
+complejidad detrás de librerías de terceros.
+
+**Filosofía (por qué se hace así):**
+
+- **Cero dependencias de cálculo.** Trigonometría, exponenciales, logaritmos,
+  álgebra de matrices y los algoritmos de ML/DL están escritos a mano. Esto
+  tiene valor educativo y hace el proyecto autocontenido.
+- **Eficiencia donde importa.** El cómputo pesado de matrices se delega a un
+  núcleo en **C** (`dknumpy.c`) mediante *binding* `ctypes`, igual que NumPy usa
+  C/Fortran por debajo. Si no hay compilador, hay *fallback* en Python.
+- **Runtime controlado.** Memoria manual (heap + punteros), aislamiento de
+  ámbitos y un *execution guard* contra bucles infinitos.
+
+**Sirve para:** escribir programas numéricos, manipular vectores/matrices,
+entrenar modelos de regresión y clasificación, y montar una red neuronal
+multicapa (MLP) para problemas no lineales como el XOR, todo con una sintaxis
+sencilla tipo C/Python.
+
+---
+
+## 2. Cumplimiento por cortes
+
+### Primer corte — Diseño del lenguaje
+
+| Tema esperado | Estado | Dónde |
+|---|---|---|
+| Diseño del lenguaje (qué puede hacer el DSL) | ✅ | Este README + gramática |
+| Gramática | ✅ | `grammar/grammarDKN.g4` |
+| Parte léxica (tokens, palabras reservadas, operadores) | ✅ | reglas léxicas del `.g4` |
+| Parte semántica (validación de tipos / sentido) | ✅ | `EvalVisitor` (`_require_number`, `_matches_type`, etc.) |
+| Parte sintáctica (estructura válida de programas) | ✅ | reglas `program`/`statement`/`expr` |
+| Primeros programas ejecutables | ✅ | `tests/*.dkn` |
+| ANTLR básico (v4) | ✅ | lexer/parser/visitor generados en `src/` |
+
+### Segundo corte — Lenguaje de propósito general
+
+| Tema esperado | Estado | Dónde |
+|---|---|---|
+| Ciclos `for` / `while` | ✅ | `visitForStmt`, `visitWhileStmt` |
+| Funciones (declaración, parámetros, retorno) | ✅ | `function ... { ... retornar x; }` |
+| Variables (asignación, tipos, alcance) | ✅ | heap + *scopes* (`heapDKN`) |
+| Archivos (lectura/escritura) | ✅ | `read`, `write`, `load_csv` |
+| Recursividad | ✅ | `tests/euclides_recursivo.dkn`, `recursividad_scoop.dkn` |
+| Consola / interfaz (terminal) | ✅ | REPL + ejecución de archivo (`main()`) |
+| Visitor (recorrido completo del árbol) | ✅ | `EvalVisitor` |
+
+### Tercer corte — Machine Learning y Deep Learning
+
+| Tema esperado | Estado | Dónde |
+|---|---|---|
+| Regresión lineal (entrenamiento + predicción) | ✅ | `tests/regresion_lineal.dkn` + `update_weights` |
+| Regresión logística (clasificación) | ✅ | `tests/clasificacion_binaria.dkn` + `sigmoid` |
+| Perceptrón (clasificador lineal) | ✅ | `escalon` + `tests/clasificacion_binaria.dkn` |
+| Perceptrón multicapa (MLP) | ✅ | `mlp_init` / `mlp_fit` / `mlp_predict` + `tests/mlp_xor.dkn` |
+| Red neuronal: **predicción** | ✅ | regresión lineal / MLP |
+| Red neuronal: **clasificación** | ✅ | logística / perceptrón / MLP (XOR) |
+| Red neuronal: **agrupamiento (clustering / k-vecinos)** | ✅ | `kmeans` (no supervisado) + `knn` |
+| Optimizador (gradiente descendente) | ✅ | `dknp_update_weights` (C) + backprop en `mlp_fit` |
+| Métricas (exactitud / matriz de confusión / MSE) | ✅ | `mse`, `exactitud`, `matriz_confusion` |
+| Métrica de **precisión** explícita | ✅ | `precision` (`TP / (TP + FP)`) |
+| Gráficos (visualización de resultados) | ✅ | `graficar_dispersion`, `graficar_linea` (canvas ASCII) |
+| Propio NumPy (vectores/matrices + binding C) | ✅ | `dknumpy.c` + `dknumpyDKN.py` |
+| Estructuras clave-valor propias | ✅ | diccionarios nativos (tabla hash) |
+| Persistencia (Redis / disco) | ✅ | `persistDKN.py` |
+
+**Resumen:** los **tres cortes están completos**. El corte 3 cubre los tres
+pilares: **predicción** (regresión lineal), **clasificación** (regresión
+logística, perceptrón, MLP/XOR) y **agrupamiento** (`kmeans` no supervisado y
+`knn`), además de optimizador, métricas (incluida `precision`) y gráficos.
+
+---
+
+## 3. Arquitectura general (pipeline)
 
 ```text
-indice = i * columnas + j
+  programa.dkn
+      │
+      ▼
+┌───────────────┐   tokens    ┌────────────────┐   AST    ┌─────────────────────┐
+│  Lexer ANTLR  │ ──────────► │  Parser ANTLR  │ ───────► │  EvalVisitor (Py)   │
+│ grammarDKNLexer│            │ grammarDKNParser│         │  interpreterDKN.py   │
+└───────────────┘             └────────────────┘          └──────────┬──────────┘
+                                                                      │ usa
+        ┌─────────────────────────────────────────────────────────────┼───────────────┐
+        ▼                         ▼                      ▼              ▼               ▼
+  ┌───────────┐           ┌──────────────┐       ┌────────────┐  ┌────────────┐  ┌────────────┐
+  │ heapDKN   │           │  matrixDKN   │       │  mathDKN   │  │ persistDKN │  │ dataDKN    │
+  │ (memoria) │           │ (álgebra)    │       │ (cálculo)  │  │ (Redis)    │  │ (CSV)      │
+  └───────────┘           └──────┬───────┘       └────────────┘  └────────────┘  └────────────┘
+                                 │ cómputo pesado
+                                 ▼
+                         ┌────────────────┐  ctypes  ┌──────────────┐
+                         │  dknumpyDKN.py │ ───────► │  dknumpy.c   │  (C nativo / .dll / .so)
+                         │  (binding)     │          │  (malloc)    │
+                         └────────────────┘          └──────────────┘
 ```
 
-- Python (vía `ctypes`) solo envía los **punteros** de los bloques; el cómputo
-  pesado se ejecuta en C a velocidad nativa:
-  - `dknp_matmul` → multiplicación de matrices,
-  - `dknp_add` / `dknp_sub` / `dknp_scalar_mul` → operaciones elemento a elemento,
-  - `dknp_transpose` → transpuesta,
-  - `dknp_update_weights` → **ajuste de pesos** `w = w - lr * grad` (ML),
-  - `dknp_dot` → producto punto.
+1. El `.dkn` se convierte en **tokens** (lexer) y luego en un **árbol sintáctico**
+   (parser), ambos generados por ANTLR.
+2. El **`EvalVisitor`** recorre el árbol y ejecuta cada nodo.
+3. Las variables viven en un **heap simulado** con punteros; las matrices se
+   almacenan como **bloques contiguos en C**.
+4. El cálculo pesado de matrices baja a **C** (o a un *fallback* en Python).
 
-`matrixDKN.py` delega en `DKNumpy` la multiplicación, suma/resta y producto por
-escalar (preservando enteros cuando la operación es exacta).
+---
 
-### Compilar la librería nativa
+## 4. Instalación y uso
+
+### 4.1 Requisitos
+
+- **Python 3.10+**
+- **Java Runtime** (solo si vas a regenerar el parser con ANTLR)
+- **Compilador de C** opcional (GCC/MinGW/MSVC) para el núcleo nativo
+- **Redis** opcional (si no está, se usa disco automáticamente)
+
+### 4.2 Dependencias
 
 ```bash
-# Linux / Mac
-bash build_dknumpy.sh        # genera src/libdknumpy.so
+python -m venv venv
+# Windows: venv\Scripts\activate    |  Linux/Mac: source venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
+> El núcleo del lenguaje no necesita paquetes externos. `requirements.txt`
+> incluye `antlr4-python3-runtime` (runtime del parser) y, opcionalmente,
+> `redis` (persistencia).
+
+### 4.3 Compilar el núcleo en C (opcional pero recomendado)
+
+```bash
 # Windows (MinGW o MSVC)
-build_dknumpy.bat            # genera src/dknumpy.dll
+build_dknumpy.bat        # genera src/dknumpy.dll
+
+# Linux / Mac
+bash build_dknumpy.sh    # genera src/libdknumpy.so
 ```
 
-> Si no hay compilador de C disponible, `dknumpyDKN.py` usa automáticamente un
-> **fallback puro en Python** (también sobre memoria contigua `ctypes`), de modo
-> que el intérprete sigue funcionando. `dump_memory()` indica qué backend está
-> activo (`C-native` o `python-fallback`).
+Si no compilas, todo sigue funcionando con el *fallback* en Python.
+`dump_memory()` indica el backend activo (`C-native` o `python-fallback`).
+
+### 4.4 Regenerar el parser (solo si cambias la gramática)
+
+```bash
+antlr4 -Dlanguage=Python3 -visitor -no-listener -o src grammar/grammarDKN.g4
+```
+
+### 4.5 Ejecutar
+
+```bash
+python src/interpreterDKN.py
+```
+
+- Escribe la ruta de un `.dkn` (p. ej. `../tests/regresion_lineal.dkn`) para
+  ejecutarlo.
+- O presiona **Enter** para entrar al **REPL** interactivo.
 
 ---
 
-## Librerías Nativas (Cero dependencias externas)
+## 5. Referencia del lenguaje (sintaxis)
 
-### `mathDKN.py` (sin `import math`)
+DKNexus usa sintaxis tipo C: **bloques con llaves `{ }`** y **sentencias
+terminadas en `;`**.
 
-La librería matemática base se implementa a mano para controlar precisión/errores:
-
-- trigonometría por **Series de Taylor** (`sin`, `cos`, `tan`, `tanh`)
-- raíces por **Newton-Raphson** (`sqrt`)
-- logaritmos y exponenciales por aproximaciones numéricas (`log`, `log10`, `exp`)
-- constantes propias (`PI`, `E`, `INF`)
-
-Se incorporan validaciones de dominio (ej. blindaje de tangente cerca de `PI/2`).
-
-### `matrixDKN.py` (sin NumPy, con binding propio de C)
-
-Álgebra lineal con matrices **dinámicas `n x m`**:
-
-- validación estructural (`matrix_dimensions`, `is_matrix`)
-- suma/resta matricial → delegada a **DKNumpy (C)**
-- multiplicación matricial y escalar → delegada a **DKNumpy (C)**
-- transpuesta → delegada a **DKNumpy (C)** (memoria contigua)
-- inversa para matriz cuadrada por **Gauss-Jordan** (en Python)
-
-El cómputo pesado corre sobre memoria contigua en C (`dknumpy.c`); la validación
-de dominio y la inversa exacta permanecen en Python.
-
----
-
-## Resiliencia y Seguridad (Execution Guard)
-
-DKNexus incorpora un guardián de ejecución para proteger la máquina host:
-
-| Mecanismo | Descripción |
-|---|---|
-| Contador global de instrucciones | Se incrementa por visita/nodo crítico del AST |
-| Límite configurable (`instruction_limit`) | Corta ejecución excesiva |
-| Excepción de protección | `DKNRuntimeError` con mensaje de timeout/bucle infinito |
-
-Esto evita loops no acotados que saturen CPU, especialmente en `while` y `for`.
-
-### Jerarquía práctica de errores
-
-| Error | Contexto |
-|---|---|
-| `DKNParseError` | Errores léxicos/sintácticos |
-| `DKNRuntimeError` | Errores semánticos o de ejecución |
-| `DKNMemoryError` | Heap sin slots / objeto no alojable |
-
----
-
-## Componentes del Lenguaje
-
-### 1) Lógica
-
-- Operadores lógicos: `and`, `or`, `not`
-- Cortocircuito en `and`/`or`
-- Truthiness estilo Python (`0`, vacío y `None` son falso; resto verdadero)
-
-### 2) Control de flujo
-
-- `if (...) { ... }`
-- `while (...) { ... }`
-- `for (init; cond; update) { ... }`
-
-> Nota: el núcleo actual implementa `if`; los flujos tipo `if/else` se modelan con composición de condiciones y bloques.
-
-### 3) Estructuras de datos
-
-- **Pilas (LIFO)**: `push`, `pop`
-- **Colas (FIFO)**: `enqueue`, `dequeue`
-- **Listas** y **matrices** como literales
-- **Diccionarios** (tablas hash clave-valor): literal `{ }`, acceso/asignación `d[clave]`
-
-#### Diccionarios nativos (tablas hash)
-
-Implementados en la **gramática** (regla `DictLiteral` + `dictEntry`) y en el
-**Visitor** (`visitDictLiteral`). Permiten búsqueda en tiempo O(1) sin recorrer
-listas. Las claves admitidas son strings o números.
+### 5.1 Comentarios
 
 ```dkn
-persona = {"nombre": "Ada", "edad": 36};
-print(persona["nombre"]);   // Ada
-persona["edad"] = 37;        // actualizar
-persona["lenguaje"] = "DKN"; // insertar
+// Comentario de una línea
 ```
 
-Utilidades sobre diccionarios:
+### 5.2 Variables y tipos
 
-| Función | Descripción |
-|---|---|
-| `dict()` | crea un diccionario vacío |
-| `len(d)` | número de pares clave-valor |
-| `keys(d)` | lista de claves |
-| `values(d)` | lista de valores |
-| `has(d, clave)` | `True`/`False` si la clave existe |
-| `del(d, clave)` | elimina la clave y devuelve su valor |
-| `type(d)` | `"dict"` |
-
-### 3.1) Persistencia ultra-liviana (Redis + fallback a disco)
-
-`persistDKN.py` guarda estado clave-valor en **RAM** mediante **Redis** (cliente
-nativo de Python). Ideal para guardar el estado de los pesos de un modelo de ML:
+No se declara el tipo; se infiere del valor. Tipos: `int`, `float`, `bool`,
+`str`, `list`, `matrix`, `dict`, `none`.
 
 ```dkn
-redis_set("modelo_pesos", [0.5, -0.2, 0.13]);
-redis_set("hiperparams", {"lr": 0.01, "epochs": 100});
-
-pesos = redis_get("modelo_pesos");   // [0.5, -0.2, 0.13] (con su tipo original)
-print(redis_keys());                 // claves almacenadas
-print(redis_exists("modelo_pesos")); // True
-redis_del("modelo_pesos");
+x = 10;              // int
+pi_aprox = 3.1416;   // float
+nombre = "Ada";      // str
+activo = 1 == 1;     // bool
+v = [1, 2, 3];       // list (vector)
+m = [[1, 2], [3, 4]]; // matrix
+d = {"lr": 0.01};    // dict
 ```
 
-| Función | Descripción |
+### 5.3 Operadores
+
+| Categoría | Operadores |
 |---|---|
-| `redis_set(clave, valor)` | guarda un valor (serializado en JSON) |
-| `redis_get(clave)` | recupera el valor con su tipo original (o `None`) |
-| `redis_del(clave)` | elimina la clave (`True` si existía) |
-| `redis_exists(clave)` | `True`/`False` |
-| `redis_keys()` | lista de claves |
-| `store_backend()` | backend activo: `"redis"` o `"disk"` |
+| Aritméticos | `+`  `-`  `*`  `/`  `%`  `^` (potencia) |
+| Comparación | `==`  `!=`  `<`  `>`  `<=`  `>=` |
+| Lógicos | `and`  `or`  `not` (con cortocircuito) |
+| Unario | `-` (negación) |
 
-> Si la librería `redis` no está instalada o no hay servidor escuchando en
-> `127.0.0.1:6379`, DKNexus usa automáticamente un **fallback a disco** (un único
-> archivo `.dknexus_store.json`). Configurable con las variables de entorno
-> `DKN_REDIS_HOST` / `DKN_REDIS_PORT`.
-
-### 4) I/O y utilidades nativas
-
-- Archivos: `read(ruta)`, `write(ruta, contenido)`
-- Introspección/runtime:
-  - `len(x)`
-  - `type(x)`
-  - `dump_memory()`
-  - `id(x)`
-  - `isinstance(x, tipo)`
-  - `dir(x)`
-  - `help(x)`
-  - `repr(x)`
-  - `str(x)`
-  - `print(x)`
-
-### 5) Funciones de usuario
-
-Definición:
+### 5.4 Control de flujo
 
 ```dkn
-function nombre(p1, p2) {
-    // statements
-    return p1 + p2;
+if (x > 0) {
+    print("positivo");
+}
+
+while (i < 10) {
+    i = i + 1;
+}
+
+for (k = 0; k < 5; k = k + 1) {
+    print(k);
 }
 ```
 
-Llamada:
+> Nota: el núcleo implementa `if` (sin `else`). El patrón `if/else` se modela con
+> dos `if` de condiciones complementarias (`>= 0.5` y `< 0.5`), como en los
+> tests de clasificación.
+
+### 5.5 Funciones (parámetros y retorno)
+
+La palabra clave de retorno es **`retornar`** (no `return`).
 
 ```dkn
-print(nombre(10, 20));
+function suma(a, b) {
+    retornar a + b;
+}
+
+print(suma(10, 20));   // 30
+```
+
+Soporta **recursividad** y aislamiento de ámbito (cada llamada tiene su scope):
+
+```dkn
+function factorial(n) {
+    if (n <= 1) { retornar 1; }
+    retornar n * factorial(n - 1);
+}
+```
+
+### 5.6 Estructuras de datos
+
+```dkn
+// Listas y matrices
+v = [10, 20, 30];
+print(v[0]);            // acceso
+v[1] = 99;              // asignación por índice
+
+// Pilas (LIFO)
+push(pila, 1); push(pila, 2);
+print(pop(pila));       // 2
+
+// Colas (FIFO)
+enqueue(cola, "A"); enqueue(cola, "B");
+print(dequeue(cola));   // "A"
+
+// Diccionarios (tabla hash propia)
+persona = {"nombre": "Ada", "edad": 36};
+print(persona["nombre"]);
+persona["edad"] = 37;
+print(has(persona, "edad"));   // True
 ```
 
 ---
 
-## Justificación Técnica
+## 6. Librería estándar (built-ins)
 
-DKNexus es sólido para el Segundo Corte por tres razones:
+### 6.1 Matemática (vía `mathDKN`, sin `import math`)
 
-1. **Control explícito de recursos**  
-   El runtime administra su heap con punteros y cuotas de memoria.
+Disponibles como expresiones del lenguaje:
 
-2. **Seguridad de ejecución**  
-   El guardián de instrucciones previene bucles infinitos y abuso de CPU.
+| Función | Descripción | Implementación |
+|---|---|---|
+| `sin(x)` `cos(x)` `tan(x)` | trigonometría | Series de Taylor |
+| `tanh(x)` | tangente hiperbólica | vía `exp` |
+| `sqrt(x)` | raíz cuadrada | Newton-Raphson |
+| `root(x, y)` | raíz y-ésima | `exp(log(x)/y)` |
+| `log(x)` `log10(x)` | logaritmos | serie de `ln` |
+| `abs(x)` `floor(x)` `ceil(x)` | utilidades | a mano |
+| `PI` `E` `INF` | constantes | series propias |
 
-3. **Profundidad educativa**  
-   Algoritmos matemáticos y matriciales implementados manualmente facilitan comprender la mecánica real detrás de bibliotecas de alto nivel.
+### 6.2 Estadística y datos
+
+| Función | Descripción |
+|---|---|
+| `sum(x)` `mean(x)` `min(x)` `max(x)` | reducciones sobre lista o matriz |
+| `normalize(v)` | normalización min-max a `[0, 1]` |
+| `load_csv(ruta)` | carga un CSV numérico como matriz |
+| `get_col(m, j)` / `set_col(m, j, v)` | columnas de una matriz |
+
+### 6.3 Álgebra de matrices (vía `matrixDKN` → C)
+
+| Operación | Cómo |
+|---|---|
+| Suma / resta | `a + b`, `a - b` (matrices del mismo tamaño) |
+| Producto matricial | `a * b` |
+| Escalar | `a * k` |
+| Transpuesta | `trans(m)` |
+| Inversa | `inv(m)` (Gauss-Jordan) |
+
+### 6.4 I/O e introspección
+
+| Función | Descripción |
+|---|---|
+| `print(x)` | imprime un valor |
+| `read(ruta)` / `write(ruta, txt)` | archivos de texto |
+| `len(x)` `type(x)` `str(x)` `repr(x)` | utilidades de tipo |
+| `isinstance(x, "tipo")` | chequeo de tipo |
+| `id(x)` `dir(x)` `help(x)` | introspección |
+| `dump_memory()` | imprime el estado del heap |
+
+### 6.5 Persistencia (vía `persistDKN`: Redis o disco)
+
+| Función | Descripción |
+|---|---|
+| `redis_set(clave, valor)` | guarda (serializado en JSON) |
+| `redis_get(clave)` | recupera con su tipo original |
+| `redis_del(clave)` `redis_exists(clave)` `redis_keys()` | gestión |
+| `store_backend()` | `"redis"` o `"disk"` |
+
+> Si no hay servidor Redis en `127.0.0.1:6379`, se usa un único archivo
+> `.dknexus_store.json`. Configurable con `DKN_REDIS_HOST` / `DKN_REDIS_PORT`.
 
 ---
 
-## Arquitectura del Proyecto
+## 7. DKNumpy: núcleo numérico en C
+
+`dknumpy.c` + `dknumpyDKN.py` reemplazan el almacenamiento de matrices como
+listas de listas por **memoria contigua** (igual que NumPy):
+
+- Una matriz `A(filas, columnas)` se aplana en un bloque de `filas * columnas`
+  `double` reservado con `malloc`. El elemento `(i, j)` se ubica en
+  `indice = i * columnas + j`.
+- Python (vía `ctypes`) solo envía **punteros**; el cómputo corre en C:
+
+| Símbolo C | Operación |
+|---|---|
+| `dknp_matmul` | multiplicación de matrices |
+| `dknp_add` / `dknp_sub` | suma / resta elemento a elemento |
+| `dknp_scalar_mul` | producto por escalar |
+| `dknp_transpose` | transpuesta |
+| `dknp_update_weights` | **`w = w - lr * grad`** (descenso de gradiente) |
+| `dknp_dot` | producto punto |
+
+**Ejemplo de dimensiones** (`mat A(2,3) * mat B(3,4) = C(2,4)`): la validación de
+dominio está en `matrixDKN.matrix_mul` (verifica que columnas de A == filas de B)
+y el cómputo baja a `dknp_matmul`.
+
+> Si la librería nativa no está compilada, `dknumpyDKN.py` usa un **fallback
+> puro en Python** (también sobre memoria contigua con `ctypes`). La API es
+> idéntica en ambos modos.
+
+---
+
+## 8. Gestión de memoria y seguridad
+
+### 8.1 Heap + punteros + scopes
+
+| Componente | Rol |
+|---|---|
+| `HeapManager` (`heapDKN.py`) | RAM simulada: direcciones `0x001`, `0x002`, … |
+| `self.scopes` | pila de ámbitos; cada variable guarda un **puntero**, no el valor |
+| `_assign_var` / `_lookup_var` | reservar / resolver nombre → puntero → valor |
+| `_push_scope` / `_pop_scope` | entrar/salir de función; libera celdas del ámbito muerto |
+
+- El heap es **dinámico** por defecto (sin tope rígido), apto para vectores y
+  matrices grandes. Se puede fijar un tope (`HeapManager(max_slots=N)`) para
+  pruebas; al excederlo lanza `DKNMemoryError`.
+- Las matrices se guardan como **bloques contiguos en C** y el heap registra su
+  puntero; al liberar el ámbito se llama al `free` de C.
+
+### 8.2 Execution Guard (anti bucles infinitos)
+
+- Un **contador global de instrucciones** (`_bump_instruction`) se incrementa en
+  cada nodo crítico y en los bucles matemáticos.
+- Al superar `instruction_limit` (1.000.000 por defecto) se lanza
+  `DKNRuntimeError` con mensaje de *timeout / bucle infinito*.
+
+### 8.3 Jerarquía de errores
+
+| Error | Contexto |
+|---|---|
+| `DKNParseError` | errores léxicos / sintácticos |
+| `DKNRuntimeError` | errores semánticos / de ejecución |
+| `DKNMemoryError` | heap sin capacidad |
+
+---
+
+## 9. Machine Learning y Deep Learning
+
+Todo el ML/DL está implementado **a mano**, sin numpy ni scikit-learn. La API de
+alto nivel imita a scikit-learn (`fit`/`predict`) y el entrenamiento usa el
+optimizador de **descenso de gradiente** del núcleo en C.
+
+### 9.1 Optimizador
+
+| Función | Descripción |
+|---|---|
+| `update_weights(w, grad, lr)` | actualiza pesos `w = w - lr * grad` (nativo en C) |
+| `dot(a, b)` | producto punto de dos vectores 1D |
+
+### 9.2 Activaciones
+
+| Función | Descripción |
+|---|---|
+| `sigmoid(z)` | `1 / (1 + e^-z)`, con saturación anti-overflow (regresión logística / MLP) |
+| `escalon(z)` | salto de Heaviside: `1.0` si `z >= 0`, si no `0.0` (perceptrón clásico) |
+
+### 9.3 Métricas
+
+| Función | Descripción |
+|---|---|
+| `mse(y_real, y_pred)` | error cuadrático medio (regresión) |
+| `exactitud(y_real, y_pred)` | accuracy en clasificación binaria |
+| `precision(y_real, y_pred)` | precisión `TP / (TP + FP)` (0.0 si no hay positivos predichos) |
+| `matriz_confusion(y_real, y_pred)` | imprime TN/FP/FN/TP |
+
+### 9.4 Gráficos (canvas ASCII)
+
+| Función | Descripción |
+|---|---|
+| `graficar_dispersion(X, Y)` | nube de puntos en texto (~40×15) |
+| `graficar_linea(X, Y, W)` | dispersión + recta `y = W[0] + W[1]·x` |
+
+### 9.5 Red Neuronal Multicapa (MLP, estilo scikit-learn)
+
+| Función | Descripción |
+|---|---|
+| `mlp_init([n_in, n_hid, n_out])` | crea la red `{W1, b1, W2, b2}` con pesos aleatorios pequeños |
+| `mlp_fit(red, X, Y, lr, epochs)` | entrena con **backpropagation** (forward + regla de la cadena) |
+| `mlp_predict(red, X)` | forward pass; devuelve predicciones binarias (`>= 0.5 → 1`) |
+
+El backprop usa la derivada de la sigmoide `A·(1−A)` y todo el álgebra
+(`matmul`, `transpose`, suma de bias por *broadcast*, sigmoide elemento a
+elemento) está escrita en Python puro y protegida por el *execution guard*.
+
+### 9.6 Agrupamiento y vecindad
+
+| Función | Descripción |
+|---|---|
+| `knn(X_train, Y_train, x_query, k)` | clasificación supervisada por **k-vecinos** más cercanos (distancia euclídea + voto mayoritario) |
+| `kmeans(X, k, iters)` | **agrupamiento no supervisado**: asigna cada punto al centroide más cercano y recalcula centroides; devuelve un vector con la etiqueta de cluster de cada punto |
+
+`kmeans` usa **inicialización determinista** (los primeros `k` puntos de `X`, sin
+`random`) para que los tests sean reproducibles. Ambos calculan distancias con
+`mathDKN.sqrt` y operaciones nativas, sin librerías externas.
+
+### 9.7 Modelos implementados ↔ referencias
+
+| Modelo DKNexus | Equivalente | Test |
+|---|---|---|
+| Regresión lineal (gradiente descendente) | `SGDRegressor` / Grokking | `tests/regresion_lineal.dkn` |
+| Perceptrón clásico (escalón, online) | `Perceptron` | `tests/clasificacion_binaria.dkn` |
+| Regresión logística (sigmoide, batch GD) | `LogisticRegression` | `tests/clasificacion_binaria.dkn` |
+| MLP para XOR (1 capa oculta) | `MLPClassifier` | `tests/mlp_xor.dkn` |
+| k-vecinos (clasificación) | `KNeighborsClassifier` | `tests/clustering_knn.dkn` |
+| k-means (agrupamiento) | `KMeans` | `tests/clustering_knn.dkn` |
+
+### 9.8 Ejemplo mínimo (regresión lineal)
+
+```dkn
+print("--- Entrenando Regresion Lineal ---");
+X = [1.0, 2.0, 3.0, 4.0];
+Y = [2.0, 4.0, 6.0, 8.0];   // y = 2x
+W = [0.0, 0.0];             // W[0]=bias, W[1]=pendiente
+lr = 0.01;
+
+for (epoca = 0; epoca < 50; epoca = epoca + 1) {
+    grad = [0.0, 0.0];
+    for (i = 0; i < len(X); i = i + 1) {
+        pred = W[0] + W[1] * X[i];
+        error = pred - Y[i];
+        grad[0] = grad[0] + error;
+        grad[1] = grad[1] + error * X[i];
+    }
+    W = update_weights(W, grad, lr);
+}
+print(W);
+graficar_linea(X, Y, W);
+```
+
+### 9.9 Ejemplo mínimo (MLP / XOR)
+
+```dkn
+X = [[0.0,0.0],[0.0,1.0],[1.0,0.0],[1.0,1.0]];
+Y = [[0.0],[1.0],[1.0],[0.0]];
+red = mlp_init([2, 4, 1]);
+red = mlp_fit(red, X, Y, 0.5, 5000);
+print(mlp_predict(red, X));    // [0.0, 1.0, 1.0, 0.0]
+```
+
+### 9.10 Ejemplo mínimo (KNN y K-Means)
+
+```dkn
+// k-vecinos (clasificación supervisada)
+X_train = [[1.0,1.0],[1.5,1.0],[8.0,8.0],[9.0,8.0]];
+Y_train = [0.0, 0.0, 1.0, 1.0];
+print(knn(X_train, Y_train, [8.5, 8.5], 3));   // 1.0
+
+// k-means (agrupamiento no supervisado)
+X_cluster = [[1.0],[2.0],[10.0],[11.0]];
+print(kmeans(X_cluster, 2, 10));               // [0.0, 0.0, 1.0, 1.0]
+```
+
+---
+
+## 10. Estructura del proyecto
 
 ```text
 DKNexus/
 ├─ grammar/
-│  └─ grammarDKN.g4
+│  └─ grammarDKN.g4              # gramática ANTLR (léxico + sintaxis)
 ├─ src/
-│  ├─ interpreterDKN.py
-│  ├─ heapDKN.py                # heap dinámico + bloques contiguos
-│  ├─ mathDKN.py
-│  ├─ matrixDKN.py             # delega cómputo pesado a DKNumpy
-│  ├─ dknumpy.c                # núcleo numérico nativo (C)
-│  ├─ dknumpyDKN.py            # binding ctypes + fallback Python
-│  ├─ persistDKN.py            # persistencia Redis + fallback a disco
-│  ├─ grammarDKNLexer.py        # generado por ANTLR
-│  ├─ grammarDKNParser.py       # generado por ANTLR
-│  └─ grammarDKNVisitor.py      # generado por ANTLR
-├─ build_dknumpy.sh            # compila libdknumpy.so
-├─ build_dknumpy.bat           # compila dknumpy.dll
-├─ tests/
-│  └─ *.dkn
+│  ├─ interpreterDKN.py          # intérprete (EvalVisitor) + REPL
+│  ├─ heapDKN.py                 # heap dinámico + punteros + scopes
+│  ├─ mathDKN.py                 # matemática propia (sin import math)
+│  ├─ matrixDKN.py               # álgebra de matrices (delega a C)
+│  ├─ dknumpy.c                  # núcleo numérico nativo (C)
+│  ├─ dknumpyDKN.py              # binding ctypes + fallback Python
+│  ├─ persistDKN.py              # persistencia Redis / disco
+│  ├─ dataDKN.py                 # carga de CSV
+│  └─ grammarDKN*.py             # lexer/parser/visitor generados por ANTLR
+├─ tests/                        # programas .dkn de ejemplo
+├─ build_dknumpy.sh / .bat       # compilan la librería nativa
+├─ requirements.txt
 └─ README.md
 ```
 
 ---
 
-## Instrucciones de Uso
+## 11. Tests incluidos
 
-## 1) Requisitos
-
-- Java Runtime (para ANTLR4)
-- Python 3.10+ (recomendado)
-- entorno virtual (`venv`)
-
-## 2) Instalar dependencias
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -r requirements.txt
-```
-
-## 3) Generar parser/lexer con ANTLR4
-
-Desde la raíz del proyecto (con el alias `antlr4` o con el jar completo):
-
-```bash
-# Opción A: alias antlr4
-antlr4 -Dlanguage=Python3 -visitor -no-listener -o src grammar/grammarDKN.g4
-
-# Opción B: jar completo + Java (necesario para regenerar tras cambios en la gramática)
-java -jar tools/antlr-4.13.2-complete.jar -Dlanguage=Python3 -visitor -no-listener -o gen_tmp grammar/grammarDKN.g4
-# luego copiar gen_tmp/grammar/grammarDKN*.py a src/
-```
-
-> Cada cambio en `grammar/grammarDKN.g4` (p. ej. el literal de diccionarios
-> `DictLiteral`) requiere regenerar los archivos ANTLR.
-
-## 4) Ejecutar intérprete
-
-```bash
-python3 src/interpreterDKN.py
-```
-
-Al iniciar:
-
-- Ingresa ruta de archivo `.dkn` para ejecución directa.
-- O presiona Enter para entrar a modo interactivo (REPL).
-
----
-
-## Ejemplos rápidos
-
-### Lógica y control
-
-```dkn
-i = 1;
-while (i <= 5 and not (i == 3)) {
-    print(i);
-    i = i + 1;
-}
-```
-
-### Matrices dinámicas
-
-```dkn
-a = [[1,2,3],[4,5,6]];
-print(trans(a));
-```
-
-### Estado del heap
-
-```dkn
-x = [[1,0],[0,1]];
-dump_memory();
-```
-
----
-
-## Estado de Entrega (Segundo Corte)
-
-| Ítem | Estado |
+| Categoría | Archivos |
 |---|---|
-| Gramática ANTLR4 + Visitor Python | Completado |
-| Heap + punteros + scopes | Completado |
-| Execution Guard | Completado |
-| Math nativa sin `math` | Completado |
-| Matriz dinámica sin NumPy | Completado |
-| DKNumpy: memoria contigua + binding de C (`ctypes`) | Completado |
-| Heap dinámico con bloques `malloc` y registro de punteros | Completado |
-| Diccionarios nativos (tablas hash) en gramática + Visitor | Completado |
-| Persistencia ligera Redis con fallback a disco | Completado |
-| Lógica (`and`, `or`, `not`) | Completado |
-| I/O y built-ins de introspección | Completado |
+| **ML / DL** | `regresion_lineal.dkn`, `clasificacion_binaria.dkn`, `mlp_xor.dkn`, `clustering_knn.dkn`, `test_ml_metricas.dkn` |
+| Control de flujo / lógica | `flujo_y_logica.dkn`, `test_logica.dkn`, `print_1_a_100.dkn`, `print_impares_1_a_100.dkn` |
+| Funciones / recursividad | `euclides.dkn`, `euclides_iterativo.dkn`, `euclides_recursivo.dkn`, `recursividad_scoop.dkn`, `burbuja.dkn` |
+| Matrices / estructuras | `test_matrices.dkn`, `matrices_y_estructuras.dkn`, `test_matriz_singular.dkn`, `test_diccionarios.dkn`, `test_pilas_colas.dkn` |
+| Datos / archivos | `archivos.dkn`, `test_files.dkn`, `procesamiento_datos.dkn`, `test_csv_resiliencia.dkn` |
+| Matemática / límites | `taylor.dkn`, `tan_pi_sobre_2.dkn`, `test_limites_math.dkn`, `test_infinito.dkn`, `aritmetica_y_errores.dkn` |
+| Memoria / persistencia | `test_heap_stress.dkn`, `test_persistencia.dkn` |
+
+Ejecutar uno (desde `src/`):
+
+```bash
+python -c "import interpreterDKN as I; I.run(open(r'../tests/mlp_xor.dkn',encoding='utf-8').read())"
+```
 
 ---
 
-## Licencia y uso académico
+## 12. Qué puede y qué NO puede hacer (límites)
 
-Proyecto desarrollado con fines académicos para la asignatura de Lenguajes, enfocado en diseño de DSL, análisis sintáctico y construcción de runtimes controlados.
+**Puede:**
+
+- Aritmética, lógica, control de flujo, funciones y recursividad.
+- Vectores, matrices `n×m`, diccionarios, pilas y colas.
+- Álgebra lineal acelerada en C; matemática por series propias.
+- Entrenar regresión lineal, regresión logística, perceptrón y un MLP.
+- Agrupamiento (`kmeans`) y clasificación por vecindad (`knn`).
+- Métricas (incl. `precision`), gráficos ASCII, persistencia y carga de CSV.
+
+**No puede (por diseño / aún no):**
+
+- **`if/else` nativo** (se modela con dos `if`).
+- Activaciones distintas a sigmoide/escalón (ReLU, softmax) — *no incluidas*.
+- Más de una capa oculta en el MLP (arquitectura fija `[in, hidden, out]`).
+- `string` como clave numérica mixta avanzada, slicing de listas, `break`/`continue`.
+- Cualquier librería externa de cálculo (es una restricción intencional).
+
+---
+
+## 13. Pendientes / Roadmap
+
+Los tres cortes están **completos** (predicción, clasificación y agrupamiento).
+Posibles extensiones futuras (no requeridas):
+
+1. **Más activaciones** (ReLU, softmax) y MLP con número de capas variable.
+2. **k-means con inicialización k-means++** (hoy es determinista por simplicidad).
+3. **Métricas adicionales** (recall, F1) a partir de la matriz de confusión.
+4. **`if/else` nativo** en la gramática.
+
+---
+
+## 14. Referencias y licencia
+
+**Referencias de diseño:**
+
+- **NumPy** — modelo de memoria contigua para vectores/matrices (núcleo en C).
+- **scikit-learn** — API `fit` / `predict` y los modelos
+  (`SGDRegressor`, `Perceptron`, `LogisticRegression`, `MLPClassifier`).
+- **Grokking** — regresión y backpropagation por gradiente descendente iterativo.
+- **ANTLR 4** — generación de lexer/parser y patrón Visitor.
+- **Redis** — almacén clave-valor en memoria para persistencia ligera.
+
+**Licencia:** proyecto académico para la asignatura de Lenguajes de Programación
+y Transducción, enfocado en diseño de DSL, análisis sintáctico, construcción de
+runtimes controlados e implementación de ML/DL desde cero.

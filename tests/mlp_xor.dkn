@@ -1,0 +1,37 @@
+// --- PASO 4 ML: Red Neuronal Multicapa (MLP) para el XOR ---
+// CERO librerias externas: todo el calculo usa listas anidadas (matrices).
+// Arquitectura: 2 entradas -> 4 neuronas ocultas -> 1 salida (sigmoide).
+
+print("--- Entrenamiento MLP: Compuerta XOR ---");
+
+// Matriz de entrada (4 muestras x 2 caracteristicas)
+X = [
+    [0.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 0.0],
+    [1.0, 1.0]
+];
+
+// Salida esperada como matriz columna (4 x 1) para cuadrar con la capa de salida
+Y = [
+    [0.0],
+    [1.0],
+    [1.0],
+    [0.0]
+];
+
+// Version plana del objetivo para validar con matriz_confusion
+Y_plana = [0.0, 1.0, 1.0, 0.0];
+
+// Inicializa la red: 2 entradas, 4 ocultas, 1 salida
+red = mlp_init([2, 4, 1]);
+
+print("Entrenando (esto resuelve un problema no lineal)...");
+red = mlp_fit(red, X, Y, 0.5, 5000);
+
+print("Predicciones finales del MLP (esperado: 0, 1, 1, 0):");
+pred = mlp_predict(red, X);
+print(pred);
+
+print("Matriz de confusion (validacion del XOR):");
+matriz_confusion(Y_plana, pred);

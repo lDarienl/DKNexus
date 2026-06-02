@@ -4,6 +4,8 @@ Intérprete del DSL DKNexus usando ANTLR4 y patrón Visitor.
 Ejecutar desde el directorio del proyecto (donde están los .py generados por ANTLR).
 """
 
+import random
+
 import dataDKN
 import dknumpyDKN
 import mathDKN
@@ -586,6 +588,93 @@ class EvalVisitor(grammarDKNVisitor):
             lines.append(''.join(grid[r]))
         return '\n'.join(lines)
 
+    # ---- Infraestructura MLP (Paso 4): álgebra de matrices en Python puro ----
+
+    def _sigmoid_scalar(self, z):
+        """Sigmoide escalar con saturación para evitar overflow de exp()."""
+        if z < -500.0:
+            return 0.0
+        if z > 500.0:
+            return 1.0
+        return 1.0 / (1.0 + mathDKN.E ** (-z))
+
+    def _mlp_matmul(self, A, B):
+        """Producto matricial A(r x k) * B(k x c) en Python puro."""
+        r = len(A)
+        k = len(A[0]) if r else 0
+        c = len(B[0]) if B else 0
+        out = [[0.0] * c for _ in range(r)]
+        for i in range(r):
+            self._bump_instruction()
+            Ai = A[i]
+            Oi = out[i]
+            for j in range(c):
+                s = 0.0
+                for t in range(k):
+                    s += Ai[t] * B[t][j]
+                Oi[j] = s
+        return out
+
+    def _mlp_transpose(self, A):
+        """Transpuesta de una matriz (lista de listas)."""
+        r = len(A)
+        c = len(A[0]) if r else 0
+        return [[A[i][j] for i in range(r)] for j in range(c)]
+
+    def _mlp_add_bias(self, Z, b):
+        """Suma (broadcast) del vector bias `b` a cada fila de la matriz `Z`."""
+        for i in range(len(Z)):
+            self._bump_instruction()
+            row = Z[i]
+            for j in range(len(b)):
+                row[j] += b[j]
+        return Z
+
+    def _mlp_sigmoid_mat(self, Z):
+        """Aplica la sigmoide elemento a elemento sobre una matriz."""
+        out = []
+        for row in Z:
+            self._bump_instruction()
+            out.append([self._sigmoid_scalar(v) for v in row])
+        return out
+
+    def _mlp_colsum(self, M):
+        """Suma por columnas de una matriz -> vector de longitud n_cols."""
+        if not M:
+            return []
+        cols = len(M[0])
+        acc = [0.0] * cols
+        for row in M:
+            self._bump_instruction()
+            for j in range(cols):
+                acc[j] += row[j]
+        return acc
+
+    def _mlp_require_net(self, value, fname):
+        """Valida que `value` sea un diccionario de red con W1/b1/W2/b2."""
+        if not isinstance(value, dict):
+            raise DKNRuntimeError(f"{fname}: la red debe ser un diccionario (usa mlp_init).")
+        for clave in ("W1", "b1", "W2", "b2"):
+            if clave not in value:
+                raise DKNRuntimeError(f"{fname}: la red no contiene la clave '{clave}'.")
+        return value
+
+    def _mlp_require_matrix(self, value, fname, argname):
+        """Valida que `value` sea una matriz (lista de listas numérica)."""
+        if not matrixDKN.is_matrix(value):
+            raise DKNRuntimeError(
+                f"{fname}: '{argname}' debe ser una matriz válida (lista de listas numérica)."
+            )
+        return [[float(v) for v in row] for row in value]
+
+    def _mlp_forward(self, W1, b1, W2, b2, X):
+        """Forward pass completo. Devuelve (Z1, A1, Z2, A2)."""
+        Z1 = self._mlp_add_bias(self._mlp_matmul(X, W1), b1)
+        A1 = self._mlp_sigmoid_mat(Z1)
+        Z2 = self._mlp_add_bias(self._mlp_matmul(A1, W2), b2)
+        A2 = self._mlp_sigmoid_mat(Z2)
+        return Z1, A1, Z2, A2
+
     def visitFuncCall(self, ctx):
         self._bump_instruction()
         name = ctx.VARIABLE().getText()
@@ -972,6 +1061,193 @@ class EvalVisitor(grammarDKNVisitor):
                 raise DKNRuntimeError("escalon(z) requiere exactamente un argumento (número).")
             z = float(self._require_number(args[0]))
             return 1.0 if z >= 0.0 else 0.0
+
+        # ---- Red Neuronal Multicapa (MLP) estilo Scikit-Learn ----
+
+        if name == "mlp_init":
+            if len(args) != 1:
+                raise DKNRuntimeError("mlp_init(capas) requiere un argumento (lista [entrada, oculta, salida]).")
+            capas = args[0]
+            if not isinstance(capas, list) or len(capas) != 3:
+                raise DKNRuntimeError("mlp_init: 'capas' debe ser una lista de 3 enteros, ej: [2, 4, 1].")
+            dims = []
+            for v in capas:
+                if isinstance(v, bool) or not isinstance(v, (int, float)) or float(v) != int(v) or int(v) <= 0:
+                    raise DKNRuntimeError("mlp_init: cada capa debe ser un entero positivo.")
+                dims.append(int(v))
+            n_in, n_hid, n_out = dims
+            # Init reproducible y pequeña en [-1, 1] (semilla fija para tests deterministas).
+            random.seed(42)
+
+            def _rnd():
+                return random.uniform(-1.0, 1.0)
+
+            W1 = [[_rnd() for _ in range(n_hid)] for _ in range(n_in)]
+            b1 = [_rnd() for _ in range(n_hid)]
+            W2 = [[_rnd() for _ in range(n_out)] for _ in range(n_hid)]
+            b2 = [_rnd() for _ in range(n_out)]
+            for _ in range(n_in * n_hid + n_hid * n_out + n_hid + n_out):
+                self._bump_instruction()
+            return {"W1": W1, "b1": b1, "W2": W2, "b2": b2}
+
+        if name == "mlp_fit":
+            if len(args) != 5:
+                raise DKNRuntimeError("mlp_fit(red, X, Y, lr, epochs) requiere cinco argumentos.")
+            red = self._mlp_require_net(args[0], "mlp_fit")
+            X = self._mlp_require_matrix(args[1], "mlp_fit", "X")
+            Y = self._mlp_require_matrix(args[2], "mlp_fit", "Y")
+            lr = float(self._require_number(args[3]))
+            epochs_raw = self._require_number(args[4])
+            if isinstance(epochs_raw, bool) or float(epochs_raw) != int(epochs_raw) or int(epochs_raw) < 0:
+                raise DKNRuntimeError("mlp_fit: 'epochs' debe ser un entero no negativo.")
+            epochs = int(epochs_raw)
+            if len(X) != len(Y):
+                raise DKNRuntimeError("mlp_fit: X e Y deben tener el mismo número de filas (muestras).")
+
+            W1, b1, W2, b2 = red["W1"], red["b1"], red["W2"], red["b2"]
+            m = len(X)
+            for _epoch in range(epochs):
+                self._bump_instruction()
+                # (a) Forward pass
+                _Z1, A1, _Z2, A2 = self._mlp_forward(W1, b1, W2, b2, X)
+                # (b) Error en la capa de salida
+                dZ2 = [[A2[i][j] - Y[i][j] for j in range(len(A2[i]))] for i in range(m)]
+                # (c) Backward pass (regla de la cadena; dSigmoid = A*(1-A))
+                dW2 = self._mlp_matmul(self._mlp_transpose(A1), dZ2)
+                db2 = self._mlp_colsum(dZ2)
+                dA1 = self._mlp_matmul(dZ2, self._mlp_transpose(W2))
+                dZ1 = [
+                    [dA1[i][j] * A1[i][j] * (1.0 - A1[i][j]) for j in range(len(A1[i]))]
+                    for i in range(m)
+                ]
+                dW1 = self._mlp_matmul(self._mlp_transpose(X), dZ1)
+                db1 = self._mlp_colsum(dZ1)
+                # (d) Actualización: W -= lr * gradiente
+                for i in range(len(W2)):
+                    for j in range(len(W2[i])):
+                        W2[i][j] -= lr * dW2[i][j]
+                for j in range(len(b2)):
+                    b2[j] -= lr * db2[j]
+                for i in range(len(W1)):
+                    for j in range(len(W1[i])):
+                        W1[i][j] -= lr * dW1[i][j]
+                for j in range(len(b1)):
+                    b1[j] -= lr * db1[j]
+            return red
+
+        if name == "mlp_predict":
+            if len(args) != 2:
+                raise DKNRuntimeError("mlp_predict(red, X) requiere dos argumentos.")
+            red = self._mlp_require_net(args[0], "mlp_predict")
+            X = self._mlp_require_matrix(args[1], "mlp_predict", "X")
+            W1, b1, W2, b2 = red["W1"], red["b1"], red["W2"], red["b2"]
+            _Z1, _A1, _Z2, A2 = self._mlp_forward(W1, b1, W2, b2, X)
+            out = []
+            for i in range(len(A2)):
+                self._bump_instruction()
+                for j in range(len(A2[i])):
+                    out.append(1.0 if A2[i][j] >= 0.5 else 0.0)
+            return out
+
+        # ---- Métrica de precisión (clasificación binaria) ----
+
+        if name == "precision":
+            if len(args) != 2:
+                raise DKNRuntimeError("precision(y_real, y_pred) requiere dos argumentos (listas).")
+            y_real = self._ml_binary(args[0], "precision", "y_real")
+            y_pred = self._ml_binary(args[1], "precision", "y_pred")
+            if len(y_real) != len(y_pred):
+                raise DKNRuntimeError("precision: y_real y y_pred deben tener la misma longitud.")
+            tp = 0
+            fp = 0
+            for i in range(len(y_real)):
+                self._bump_instruction()
+                if y_pred[i] == 1:
+                    if y_real[i] == 1:
+                        tp += 1
+                    else:
+                        fp += 1
+            denom = tp + fp
+            if denom == 0:
+                return 0.0
+            return tp / denom
+
+        # ---- Agrupamiento / clasificación por vecindad ----
+
+        if name == "knn":
+            if len(args) != 4:
+                raise DKNRuntimeError("knn(X_train, Y_train, x_query, k) requiere cuatro argumentos.")
+            X_train = self._mlp_require_matrix(args[0], "knn", "X_train")
+            Y_train = self._ml_binary(args[1], "knn", "Y_train")
+            x_query = self._ml_vector(args[2], "knn", "x_query")
+            k = self._coerce_int_index(args[3], "knn")
+            if len(X_train) != len(Y_train):
+                raise DKNRuntimeError("knn: X_train y Y_train deben tener el mismo número de muestras.")
+            if len(X_train[0]) != len(x_query):
+                raise DKNRuntimeError("knn: x_query debe tener la misma dimensión que las filas de X_train.")
+            if k <= 0 or k > len(X_train):
+                raise DKNRuntimeError(f"knn: 'k' debe estar entre 1 y {len(X_train)}.")
+            distancias = []
+            for idx in range(len(X_train)):
+                self._bump_instruction()
+                suma = 0.0
+                fila = X_train[idx]
+                for j in range(len(x_query)):
+                    d = fila[j] - x_query[j]
+                    suma += d * d
+                distancias.append((mathDKN.sqrt(suma), Y_train[idx]))
+            distancias.sort(key=lambda par: par[0])
+            votos = {0: 0, 1: 0}
+            for n in range(k):
+                self._bump_instruction()
+                clase = int(distancias[n][1])
+                votos[clase] += 1
+            return 1.0 if votos[1] > votos[0] else 0.0
+
+        if name == "kmeans":
+            if len(args) != 3:
+                raise DKNRuntimeError("kmeans(X, k, iters) requiere tres argumentos.")
+            X = self._mlp_require_matrix(args[0], "kmeans", "X")
+            k = self._coerce_int_index(args[1], "kmeans")
+            iters = self._coerce_int_index(args[2], "kmeans")
+            n = len(X)
+            dim = len(X[0])
+            if k <= 0 or k > n:
+                raise DKNRuntimeError(f"kmeans: 'k' debe estar entre 1 y {n}.")
+            if iters < 0:
+                raise DKNRuntimeError("kmeans: 'iters' debe ser un entero no negativo.")
+            # Centroides iniciales: los primeros k puntos (determinista, sin random).
+            centroides = [[X[c][d] for d in range(dim)] for c in range(k)]
+            etiquetas = [0.0] * n
+            for _it in range(iters):
+                self._bump_instruction()
+                # (a) Asignación de cada punto al centroide más cercano.
+                for i in range(n):
+                    self._bump_instruction()
+                    mejor_c = 0
+                    mejor_dist = None
+                    for c in range(k):
+                        suma = 0.0
+                        for d in range(dim):
+                            delta = X[i][d] - centroides[c][d]
+                            suma += delta * delta
+                        if mejor_dist is None or suma < mejor_dist:
+                            mejor_dist = suma
+                            mejor_c = c
+                    etiquetas[i] = float(mejor_c)
+                # (b) Recalcular centroides como promedio de los puntos asignados.
+                for c in range(k):
+                    self._bump_instruction()
+                    acum = [0.0] * dim
+                    cuenta = 0
+                    for i in range(n):
+                        if int(etiquetas[i]) == c:
+                            cuenta += 1
+                            for d in range(dim):
+                                acum[d] += X[i][d]
+                    if cuenta > 0:
+                        centroides[c] = [acum[d] / cuenta for d in range(dim)]
+            return etiquetas
 
         if name not in self.functions:
             raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")
