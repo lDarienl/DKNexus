@@ -1,4 +1,4 @@
-# Generated from grammar/grammarDKN.g4 by ANTLR 4.13.2
+# Generated from grammarDKN.g4 by ANTLR 4.13.2
 from antlr4 import *
 if "." in __name__:
     from .grammarDKNParser import grammarDKNParser

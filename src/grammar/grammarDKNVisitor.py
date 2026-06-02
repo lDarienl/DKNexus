@@ -64,6 +64,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by grammarDKNParser#IndexAssign.
+    def visitIndexAssign(self, ctx:grammarDKNParser.IndexAssignContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by grammarDKNParser#IfStmt.
     def visitIfStmt(self, ctx:grammarDKNParser.IfStmtContext):
         return self.visitChildren(ctx)
@@ -134,6 +139,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by grammarDKNParser#DictLiteral.
+    def visitDictLiteral(self, ctx:grammarDKNParser.DictLiteralContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by grammarDKNParser#AbsFunc.
     def visitAbsFunc(self, ctx:grammarDKNParser.AbsFuncContext):
         return self.visitChildren(ctx)
@@ -176,6 +186,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by grammarDKNParser#TanFunc.
     def visitTanFunc(self, ctx:grammarDKNParser.TanFuncContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by grammarDKNParser#IndexAccess.
+    def visitIndexAccess(self, ctx:grammarDKNParser.IndexAccessContext):
         return self.visitChildren(ctx)
 
 
@@ -241,6 +256,11 @@ class grammarDKNVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by grammarDKNParser#QueueDequeue.
     def visitQueueDequeue(self, ctx:grammarDKNParser.QueueDequeueContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by grammarDKNParser#dictEntry.
+    def visitDictEntry(self, ctx:grammarDKNParser.DictEntryContext):
         return self.visitChildren(ctx)
 
 

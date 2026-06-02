@@ -1,9 +1,9 @@
 function mcd_recursivo(a, b) {
     if (b == 0) {
-        retornar a;
+        return a;
     }
     // Caso recursivo: mcd(b, a % b)
-    retornar mcd_recursivo(b, a % b);
+    return mcd_recursivo(b, a % b);
 }
 
 print("Resultado Euclides Recursivo (48, 18):");

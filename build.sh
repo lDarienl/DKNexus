@@ -1,12 +1,13 @@
-#!/bin/bash
-echo "--- Generando Lexer y Parser desde grammar/ ---"
-# Ejecutar ANTLR apuntando a la carpeta grammar
-antlr4 -Dlanguage=Python3 -visitor -no-listener grammar/grammarDKN.g4
+#!/usr/bin/env zsh
+set -e
 
-# Mover los archivos generados automáticamente a src/
-mv grammar/grammarDKN*.py src/ 2>/dev/null || mv grammarDKN*.py src/
+# Forzamos a cargar tu entorno de Zsh para que reconozca el comando antlr4
+source ~/.zshrc 2>/dev/null || true
 
-echo "--- Limpiando archivos temporales ---"
-rm -f grammar/*.tokens grammar/*.interp *.tokens *.interp
+echo "--- Generando Lexer y Parser directo en src/ ---"
+antlr4 -Dlanguage=Python3 -visitor -no-listener -o src grammar/grammarDKN.g4
+
+echo "--- Limpiando archivos de control temporales ---"
+rm -f src/grammarDKN*.tokens src/grammarDKN*.interp
 
 echo "Listo. Para ejecutar usa: cd src && python3 interpreterDKN.py"
