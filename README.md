@@ -573,7 +573,8 @@ DKNexus/
 
 | Categoría | Archivos |
 |---|---|
-| **ML / DL** | `regresion_lineal.dkn`, `clasificacion_binaria.dkn`, `mlp_xor.dkn`, `clustering_knn.dkn`, `test_ml_metricas.dkn` |
+| **ML / DL (básico)** | `regresion_lineal.dkn`, `clasificacion_binaria.dkn`, `mlp_xor.dkn`, `clustering_knn.dkn`, `test_ml_metricas.dkn` |
+| **ML / DL (integral + estrés + errores)** | `test_dl_completo.dkn` (pipeline completo con gráficos), `test_dl_estres.dkn` (datasets grandes, MLP de 8 ocultas, 3 clusters), `test_dl_errores.dkn` (catálogo de errores forzados) |
 | Control de flujo / lógica | `flujo_y_logica.dkn`, `test_logica.dkn`, `print_1_a_100.dkn`, `print_impares_1_a_100.dkn` |
 | Funciones / recursividad | `euclides.dkn`, `euclides_iterativo.dkn`, `euclides_recursivo.dkn`, `recursividad_scoop.dkn`, `burbuja.dkn` |
 | Matrices / estructuras | `test_matrices.dkn`, `matrices_y_estructuras.dkn`, `test_matriz_singular.dkn`, `test_diccionarios.dkn`, `test_pilas_colas.dkn` |

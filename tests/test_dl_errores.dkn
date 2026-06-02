@@ -1,0 +1,69 @@
+// ====================================================================
+//  TEST DE ROBUSTEZ ML/DL  -  Forzar errores y validar reacciones
+//
+//  NOTA: el interprete detiene la ejecucion en el PRIMER error de
+//  runtime (comportamiento correcto). Por eso cada caso de abajo esta
+//  COMENTADO: descomenta UNO a la vez para verlo reaccionar.
+//  Al final, un caso queda ACTIVO para demostrar el manejo elegante.
+// ====================================================================
+
+print("--- CATALOGO DE ERRORES ML/DL (descomentar uno a la vez) ---");
+
+// ---------- A) DIMENSIONES INCOMPATIBLES ----------
+// mse con listas de distinta longitud:
+// print(mse([1.0, 2.0, 3.0], [1.0, 2.0]));
+//   -> Error: mse: y_real y y_pred deben tener la misma longitud.
+
+// update_weights con vectores de distinta longitud:
+// print(update_weights([0.0, 0.0], [1.0], 0.1));
+//   -> Error: update_weights: 'w' y 'grad' deben tener la misma longitud.
+
+// mlp_fit con X e Y de distinto numero de filas:
+// red = mlp_init([2, 3, 1]);
+// red = mlp_fit(red, [[0.0, 0.0], [1.0, 1.0]], [[0.0]], 0.5, 10);
+//   -> Error: mlp_fit: X e Y deben tener el mismo numero de filas (muestras).
+
+// knn con x_query de dimension distinta a X_train:
+// print(knn([[1.0, 2.0], [3.0, 4.0]], [0.0, 1.0], [1.0], 1));
+//   -> Error: knn: x_query debe tener la misma dimension que las filas de X_train.
+
+// ---------- B) TIPOS / DOMINIO INVALIDO ----------
+// exactitud con etiquetas NO binarias (debe exigir 0 y 1):
+// print(exactitud([0.0, 2.0, 1.0], [0.0, 1.0, 1.0]));
+//   -> Error: exactitud: 'y_real' debe contener solo 0 y 1 (clasificacion binaria).
+
+// sigmoid con un texto en vez de numero:
+// print(sigmoid("hola"));
+//   -> Error: Tipo de dato invalido: Se esperaba un numero.
+
+// kmeans sobre un vector 1D (no es matriz):
+// print(kmeans([1.0, 2.0, 3.0], 2, 5));
+//   -> Error: kmeans: 'X' debe ser una matriz valida (lista de listas numerica).
+
+// ---------- C) LIMITES / RANGOS ----------
+// knn con k fuera de rango (mayor que el numero de muestras):
+// print(knn([[1.0], [2.0]], [0.0, 1.0], [1.5], 9));
+//   -> Error: knn: 'k' debe estar entre 1 y 2.
+
+// kmeans con k mayor que el numero de puntos:
+// print(kmeans([[1.0], [2.0]], 5, 10));
+//   -> Error: kmeans: 'k' debe estar entre 1 y 2.
+
+// mlp_init con una arquitectura invalida (no son 3 capas):
+// red = mlp_init([2, 1]);
+//   -> Error: mlp_init: 'capas' debe ser una lista de 3 enteros, ej: [2, 4, 1].
+
+// ---------- D) NUMERO DE ARGUMENTOS ----------
+// precision necesita exactamente 2 argumentos:
+// print(precision([1.0, 0.0]));
+//   -> Error: precision(y_real, y_pred) requiere dos argumentos (listas).
+
+// ====================================================================
+//  CASO ACTIVO: division por cero dentro de una metrica de precision.
+//  Aqui NO hay positivos predichos (todos 0), asi que TP + FP = 0.
+//  El interprete NO debe romperse: precision retorna 0.0 con seguridad.
+// ====================================================================
+print("Precision sin positivos predichos (manejo seguro, esperado 0.0):");
+print(precision([1.0, 1.0, 0.0], [0.0, 0.0, 0.0]));
+
+print("--- Fin del catalogo (sin caidas del interprete) ---");

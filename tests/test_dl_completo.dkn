@@ -1,0 +1,151 @@
+// ====================================================================
+//  TEST INTEGRAL ML/DL  -  Pipeline completo con metricas y graficos
+//  Cubre: regresion lineal, regresion logistica, perceptron, MLP (XOR),
+//         KNN, K-Means, metricas (mse/exactitud/precision/confusion)
+//         y graficos ASCII (dispersion y linea).
+// ====================================================================
+
+print("============================================================");
+print(" 1) REGRESION LINEAL  (objetivo ideal: y = 2x + 1)");
+print("============================================================");
+
+X = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+Y = [3.0, 5.0, 7.0, 9.0, 11.0, 13.0];
+W = [0.0, 0.0];
+lr = 0.01;
+n = len(X);
+
+for (epoca = 0; epoca < 400; epoca = epoca + 1) {
+    g = [0.0, 0.0];
+    for (i = 0; i < n; i = i + 1) {
+        pred = W[0] + W[1] * X[i];
+        err = pred - Y[i];
+        g[0] = g[0] + err;
+        g[1] = g[1] + err * X[i];
+    }
+    W = update_weights(W, g, lr);
+}
+
+print("Pesos finales [bias, pendiente]:");
+print(W);
+
+Y_pred = [];
+for (i = 0; i < n; i = i + 1) {
+    push(Y_pred, W[0] + W[1] * X[i]);
+}
+print("MSE final (debe ser ~0):");
+print(mse(Y, Y_pred));
+
+print("Dispersion de datos:");
+graficar_dispersion(X, Y);
+print("Recta de regresion aprendida:");
+graficar_linea(X, Y, W);
+
+print("");
+print("============================================================");
+print(" 2) REGRESION LOGISTICA  (compuerta OR) + METRICAS");
+print("============================================================");
+
+X1 = [0.0, 0.0, 1.0, 1.0];
+X2 = [0.0, 1.0, 0.0, 1.0];
+Y_or = [0.0, 1.0, 1.0, 1.0];
+W_log = [0.0, 0.0, 0.0];
+
+for (epoca = 0; epoca < 200; epoca = epoca + 1) {
+    grad = [0.0, 0.0, 0.0];
+    for (i = 0; i < 4; i = i + 1) {
+        z = W_log[0] + W_log[1] * X1[i] + W_log[2] * X2[i];
+        prob = sigmoid(z);
+        error = prob - Y_or[i];
+        grad[0] = grad[0] + error;
+        grad[1] = grad[1] + error * X1[i];
+        grad[2] = grad[2] + error * X2[i];
+    }
+    W_log = update_weights(W_log, grad, 0.5);
+}
+
+pred_or = [];
+for (i = 0; i < 4; i = i + 1) {
+    z = W_log[0] + W_log[1] * X1[i] + W_log[2] * X2[i];
+    if (sigmoid(z) >= 0.5) { push(pred_or, 1); }
+    if (sigmoid(z) < 0.5) { push(pred_or, 0); }
+}
+print("Exactitud (esperado 1.0):");
+print(exactitud(Y_or, pred_or));
+print("Precision (esperado 1.0):");
+print(precision(Y_or, pred_or));
+matriz_confusion(Y_or, pred_or);
+
+print("");
+print("============================================================");
+print(" 3) PERCEPTRON CLASICO  (compuerta AND)");
+print("============================================================");
+
+Y_and = [0.0, 0.0, 0.0, 1.0];
+W_perc = [0.0, 0.0, 0.0];
+
+for (epoca = 0; epoca < 30; epoca = epoca + 1) {
+    for (i = 0; i < 4; i = i + 1) {
+        z = W_perc[0] + W_perc[1] * X1[i] + W_perc[2] * X2[i];
+        pred = escalon(z);
+        error = pred - Y_and[i];
+        W_perc = update_weights(W_perc, [error, error * X1[i], error * X2[i]], 0.1);
+    }
+}
+pred_and = [];
+for (i = 0; i < 4; i = i + 1) {
+    z = W_perc[0] + W_perc[1] * X1[i] + W_perc[2] * X2[i];
+    push(pred_and, escalon(z));
+}
+print("Predicciones AND (esperado 0,0,0,1):");
+print(pred_and);
+print("Exactitud AND:");
+print(exactitud(Y_and, pred_and));
+
+print("");
+print("============================================================");
+print(" 4) RED NEURONAL MULTICAPA (MLP)  -  XOR no lineal");
+print("============================================================");
+
+X_xor = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]];
+Y_xor = [[0.0], [1.0], [1.0], [0.0]];
+Y_xor_plana = [0.0, 1.0, 1.0, 0.0];
+
+red = mlp_init([2, 4, 1]);
+red = mlp_fit(red, X_xor, Y_xor, 0.5, 5000);
+pred_xor = mlp_predict(red, X_xor);
+print("Predicciones XOR (esperado 0,1,1,0):");
+print(pred_xor);
+print("Exactitud XOR:");
+print(exactitud(Y_xor_plana, pred_xor));
+matriz_confusion(Y_xor_plana, pred_xor);
+
+print("");
+print("============================================================");
+print(" 5) K-VECINOS (KNN)  -  clasificacion supervisada");
+print("============================================================");
+
+X_train = [[1.0, 1.0], [1.5, 1.0], [1.0, 1.5], [8.0, 8.0], [9.0, 8.0], [8.0, 9.0]];
+Y_train = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0];
+
+print("Punto [8.5, 8.5] (esperado 1.0):");
+print(knn(X_train, Y_train, [8.5, 8.5], 3));
+print("Punto [1.2, 1.2] (esperado 0.0):");
+print(knn(X_train, Y_train, [1.2, 1.2], 3));
+
+print("");
+print("============================================================");
+print(" 6) K-MEANS  -  agrupamiento no supervisado + grafico");
+print("============================================================");
+
+X_cluster = [[1.0], [2.0], [3.0], [10.0], [11.0], [12.0]];
+etiquetas = kmeans(X_cluster, 2, 10);
+print("Etiquetas de cluster (esperado dos grupos):");
+print(etiquetas);
+
+valores = get_col(X_cluster, 0);
+print("Dispersion (valor vs cluster asignado):");
+graficar_dispersion(valores, etiquetas);
+
+print("");
+print("=== FIN DEL PIPELINE INTEGRAL ML/DL ===");

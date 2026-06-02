@@ -1,0 +1,112 @@
+// ====================================================================
+//  TEST DE ESTRES ML/DL  -  Datasets grandes, muchas epocas y mas
+//  capas/clusters. Verifica estabilidad numerica, el Execution Guard
+//  y el heap dinamico bajo carga.
+// ====================================================================
+
+print("============================================================");
+print(" 1) REGRESION LINEAL sobre dataset generado (15 puntos)");
+print("============================================================");
+
+// Genera X = 1..15 y Y = 3x - 2 de forma programatica.
+X = [];
+Y = [];
+for (i = 1; i < 16; i = i + 1) {
+    push(X, i * 1.0);
+    push(Y, 3.0 * i - 2.0);
+}
+print("Tamano del dataset:");
+print(len(X));
+
+// Normalizamos X para estabilizar el gradiente (sum de gradientes).
+Xn = normalize(X);
+W = [0.0, 0.0];
+n = len(Xn);
+
+for (epoca = 0; epoca < 800; epoca = epoca + 1) {
+    g = [0.0, 0.0];
+    for (i = 0; i < n; i = i + 1) {
+        pred = W[0] + W[1] * Xn[i];
+        err = pred - Y[i];
+        g[0] = g[0] + err;
+        g[1] = g[1] + err * Xn[i];
+    }
+    W = update_weights(W, g, 0.01);
+}
+print("Pesos finales (sobre X normalizada):");
+print(W);
+
+Yp = [];
+for (i = 0; i < n; i = i + 1) {
+    push(Yp, W[0] + W[1] * Xn[i]);
+}
+print("MSE final:");
+print(mse(Y, Yp));
+graficar_linea(Xn, Y, W);
+
+print("");
+print("============================================================");
+print(" 2) MLP MAS GRANDE (8 neuronas ocultas, 8000 epocas) - XOR");
+print("============================================================");
+
+X_xor = [[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]];
+Y_xor = [[0.0], [1.0], [1.0], [0.0]];
+Y_plana = [0.0, 1.0, 1.0, 0.0];
+
+red = mlp_init([2, 8, 1]);
+red = mlp_fit(red, X_xor, Y_xor, 0.5, 8000);
+pred = mlp_predict(red, X_xor);
+print("Predicciones XOR (esperado 0,1,1,0):");
+print(pred);
+print("Exactitud:");
+print(exactitud(Y_plana, pred));
+
+print("");
+print("============================================================");
+print(" 3) K-MEANS con 3 clusters y 12 puntos en 2D");
+print("============================================================");
+
+// Los 3 primeros puntos son uno por grupo (init determinista bien sembrada).
+X3 = [
+    [1.0, 1.0], [9.0, 9.0], [1.0, 9.0],
+    [1.5, 1.5], [2.0, 1.0], [1.0, 2.0],
+    [8.5, 9.0], [9.0, 8.5], [8.0, 9.0],
+    [1.5, 8.5], [2.0, 9.0], [1.0, 8.5]
+];
+etiquetas = kmeans(X3, 3, 20);
+print("Etiquetas (12 puntos, 3 grupos, esperado 3 grupos limpios):");
+print(etiquetas);
+
+print("");
+print("============================================================");
+print(" 4) KNN con conjunto de entrenamiento mas grande");
+print("============================================================");
+
+XT = [
+    [1.0, 1.0], [2.0, 1.0], [1.0, 2.0], [2.0, 2.0],
+    [8.0, 8.0], [9.0, 8.0], [8.0, 9.0], [9.0, 9.0]
+];
+YT = [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0];
+print("Consulta [7.0, 7.5] con k=5 (esperado 1.0):");
+print(knn(XT, YT, [7.0, 7.5], 5));
+print("Consulta [1.5, 1.5] con k=5 (esperado 0.0):");
+print(knn(XT, YT, [1.5, 1.5], 5));
+
+print("");
+print("============================================================");
+print(" 5) HEAP DINAMICO: matriz 20x20 construida en caliente");
+print("============================================================");
+
+M = [];
+for (i = 0; i < 20; i = i + 1) {
+    fila = [];
+    for (j = 0; j < 20; j = j + 1) {
+        push(fila, i + j);
+    }
+    push(M, fila);
+}
+print("Matriz 20x20 creada. Fila 0:");
+print(M[0]);
+
+print("");
+print("=== FIN DEL TEST DE ESTRES ===");
