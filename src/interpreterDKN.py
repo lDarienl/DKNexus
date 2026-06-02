@@ -5,6 +5,7 @@ Ejecutar desde el directorio del proyecto (donde están los .py generados por AN
 """
 
 import dataDKN
+import dknumpyDKN
 import mathDKN
 import matrixDKN
 import persistDKN
@@ -918,6 +919,40 @@ class EvalVisitor(grammarDKNVisitor):
                 raise DKNRuntimeError("graficar_linea: W debe tener al menos 2 elementos (W[0]=bias, W[1]=peso).")
             print(self._ascii_canvas(X, Y, W, title="[Grafico de Linea / Regresion]"))
             return None
+
+        # ---- Descenso de gradiente (motor nativo dknumpy) ----
+
+        if name == "update_weights":
+            if len(args) != 3:
+                raise DKNRuntimeError(
+                    "update_weights(w, grad, lr) requiere tres argumentos (vector, vector, número)."
+                )
+            w = self._ml_vector(args[0], "update_weights", "w")
+            grad = self._ml_vector(args[1], "update_weights", "grad")
+            if len(w) != len(grad):
+                raise DKNRuntimeError(
+                    "update_weights: 'w' y 'grad' deben tener la misma longitud."
+                )
+            lr = self._require_number(args[2])
+            for _ in w:
+                self._bump_instruction()
+            try:
+                return dknumpyDKN.update_weights_lists(w, grad, lr)
+            except ValueError as e:
+                raise DKNRuntimeError(f"update_weights: {e}") from e
+
+        if name == "dot":
+            if len(args) != 2:
+                raise DKNRuntimeError("dot(a, b) requiere dos argumentos (vectores 1D).")
+            a = self._ml_vector(args[0], "dot", "a")
+            b = self._ml_vector(args[1], "dot", "b")
+            if len(a) != len(b):
+                raise DKNRuntimeError("dot: 'a' y 'b' deben tener la misma longitud.")
+            total = 0.0
+            for i in range(len(a)):
+                self._bump_instruction()
+                total += a[i] * b[i]
+            return total
 
         if name not in self.functions:
             raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")
