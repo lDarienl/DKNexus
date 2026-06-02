@@ -58,6 +58,7 @@ expr
     | 'pop' '(' VARIABLE ')'            # StackPop
     | 'dequeue' '(' VARIABLE ')'        # QueueDequeue
     | '[' (expr (',' expr)*)? ']'       # ListLiteral
+    | '{' (dictEntry (',' dictEntry)*)? '}' # DictLiteral
     | PI                                # PiConst
     | EULER                             # EConst
     | INF                               # InfConst
@@ -67,6 +68,10 @@ expr
     | VARIABLE '(' (expr (',' expr)*)? ')'  # FuncCall
     | VARIABLE                          # Var
     ;
+
+// Entrada de diccionario: clave ':' valor. La clave es una expresión
+// (típicamente string o número) y el valor cualquier expresión.
+dictEntry: expr ':' expr;
 
 NUMBER: [0-9]+ ('.' [0-9]+)?;
 // Strings: comillas dobles, dentro se puede escapar " con \"

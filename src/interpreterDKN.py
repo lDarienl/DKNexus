@@ -7,6 +7,7 @@ Ejecutar desde el directorio del proyecto (donde están los .py generados por AN
 import dataDKN
 import mathDKN
 import matrixDKN
+import persistDKN
 from heapDKN import DKNMemoryError, HeapManager
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
@@ -45,7 +46,9 @@ class CollectingErrorListener(ErrorListener):
 class EvalVisitor(grammarDKNVisitor):
     """Visitor que evalúa expresiones y ejecuta sentencias."""
 
-    def __init__(self, heap_slots: int = 1024, instruction_limit: int = 1_000_000):
+    def __init__(self, heap_slots: int | None = None, instruction_limit: int = 1_000_000):
+        # heap_slots=None => heap dinamico (sin limite rigido de 1024), apto para
+        # vectores/matrices grandes de Machine Learning.
         self.heap = HeapManager(heap_slots)
         # Cada ámbito mapea nombre -> dirección (puntero) en el heap.
         self.scopes: list[dict[str, str]] = [{}]
@@ -138,6 +141,8 @@ class EvalVisitor(grammarDKNVisitor):
             return "float"
         if isinstance(value, str):
             return "str"
+        if isinstance(value, dict):
+            return "dict"
         if matrixDKN.is_matrix(value):
             return "matrix"
         if isinstance(value, list):
@@ -264,10 +269,15 @@ class EvalVisitor(grammarDKNVisitor):
         self._bump_instruction()
         name = ctx.VARIABLE().getText()
         container = self._lookup_var(name)
+        key_raw = self.visit(ctx.expr(0))
+        if isinstance(container, dict):
+            key = self._dict_key(key_raw)
+            value = self.visit(ctx.expr(1))
+            container[key] = value
+            return value
         if not isinstance(container, list):
-            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista.")
-        idx_raw = self.visit(ctx.expr(0))
-        idx = self._coerce_int_index(idx_raw, "index")
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista o diccionario.")
+        idx = self._coerce_int_index(key_raw, "index")
         if idx < 0 or idx >= len(container):
             raise DKNRuntimeError(
                 f"Error de índice: posición {idx} fuera de rango para '{name}' (longitud {len(container)})."
@@ -450,10 +460,17 @@ class EvalVisitor(grammarDKNVisitor):
     def visitIndexAccess(self, ctx):
         name = ctx.VARIABLE().getText()
         container = self._lookup_var(name)
+        key_raw = self.visit(ctx.expr())
+        if isinstance(container, dict):
+            key = self._dict_key(key_raw)
+            if key not in container:
+                raise DKNRuntimeError(
+                    f"Error de clave: '{key}' no existe en el diccionario '{name}'."
+                )
+            return container[key]
         if not isinstance(container, list):
-            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista.")
-        idx_raw = self.visit(ctx.expr())
-        idx = self._coerce_int_index(idx_raw, "index")
+            raise DKNRuntimeError(f"Error Semántico: '{name}' no es indexable como lista o diccionario.")
+        idx = self._coerce_int_index(key_raw, "index")
         if idx < 0 or idx >= len(container):
             raise DKNRuntimeError(
                 f"Error de índice: posición {idx} fuera de rango para '{name}' (longitud {len(container)})."
@@ -462,6 +479,111 @@ class EvalVisitor(grammarDKNVisitor):
 
     def visitParens(self, ctx):
         return self.visit(ctx.expr())
+
+    # ---- Infraestructura ML (Paso 1): métricas y canvas ASCII (sin librerías) ----
+
+    def _ml_vector(self, value, fname, argname):
+        """Extrae un vector numérico (lista de floats) desde un valor del Heap."""
+        if not isinstance(value, list) or matrixDKN.is_matrix(value):
+            raise DKNRuntimeError(
+                f"{fname}: '{argname}' debe ser una lista/vector de números (1D)."
+            )
+        if not value:
+            raise DKNRuntimeError(f"{fname}: '{argname}' no puede estar vacío.")
+        out = []
+        for v in value:
+            if isinstance(v, bool) or not isinstance(v, (int, float)):
+                raise DKNRuntimeError(
+                    f"{fname}: '{argname}' debe contener solo valores numéricos."
+                )
+            out.append(float(v))
+        return out
+
+    def _ml_binary(self, value, fname, argname):
+        """Igual que _ml_vector pero exige etiquetas binarias (0 y 1)."""
+        vec = self._ml_vector(value, fname, argname)
+        out = []
+        for v in vec:
+            if v not in (0.0, 1.0):
+                raise DKNRuntimeError(
+                    f"{fname}: '{argname}' debe contener solo 0 y 1 (clasificación binaria)."
+                )
+            out.append(int(v))
+        return out
+
+    def _ascii_canvas(self, X, Y, weights=None, title="[Grafico]"):
+        """
+        Construye un canvas ASCII (~40x15) con la dispersión de (X, Y).
+        Si `weights` no es None, dibuja además la recta y = W[0] + W[1]*x.
+        Devuelve el string completo del canvas (con título).
+        """
+        WIDTH = 40
+        HEIGHT = 15
+        n = len(X)
+
+        xmin, xmax = min(X), max(X)
+        ymin, ymax = min(Y), max(Y)
+
+        # Si hay recta, ampliamos el rango Y para que sea visible dentro del grid.
+        if weights is not None:
+            y_lo = weights[0] + weights[1] * xmin
+            y_hi = weights[0] + weights[1] * xmax
+            ymin = min(ymin, y_lo, y_hi)
+            ymax = max(ymax, y_lo, y_hi)
+
+        # Grid de caracteres inicializado en blanco.
+        grid = [[' ' for _ in range(WIDTH)] for _ in range(HEIGHT)]
+        # Eje Y (columna 0) y eje X (última fila), con origen '+'.
+        for r in range(HEIGHT):
+            grid[r][0] = '|'
+        for c in range(WIDTH):
+            grid[HEIGHT - 1][c] = '-'
+        grid[HEIGHT - 1][0] = '+'
+
+        data_cols = WIDTH - 1   # columnas útiles 1..WIDTH-1
+        data_rows = HEIGHT - 1  # filas útiles 0..HEIGHT-2
+
+        def col_of(x):
+            if xmax == xmin:
+                scaled = 0
+            else:
+                scaled = int((x - xmin) / (xmax - xmin) * (data_cols - 1))
+            return 1 + scaled
+
+        def row_of(y):
+            if ymax == ymin:
+                scaled = 0
+            else:
+                scaled = int((y - ymin) / (ymax - ymin) * (data_rows - 1))
+            # Invertir: los valores altos de Y van arriba.
+            return (data_rows - 1) - scaled
+
+        # Puntos de datos ('*'): un bump por cada punto procesado.
+        for i in range(n):
+            self._bump_instruction()
+            c = col_of(X[i])
+            r = row_of(Y[i])
+            if 0 <= r < data_rows and 1 <= c < WIDTH:
+                grid[r][c] = '*'
+
+        # Recta de regresión / frontera de decisión ('#') sobre el canvas.
+        if weights is not None:
+            for c in range(1, WIDTH):
+                if data_cols - 1 <= 0:
+                    x = xmin
+                else:
+                    x = xmin + (c - 1) / (data_cols - 1) * (xmax - xmin)
+                y = weights[0] + weights[1] * x
+                r = row_of(y)
+                if 0 <= r < data_rows and grid[r][c] == ' ':
+                    grid[r][c] = '#'
+
+        # Render por filas: un bump por cada fila renderizada del canvas.
+        lines = [title]
+        for r in range(HEIGHT):
+            self._bump_instruction()
+            lines.append(''.join(grid[r]))
+        return '\n'.join(lines)
 
     def visitFuncCall(self, ctx):
         self._bump_instruction()
@@ -482,9 +604,85 @@ class EvalVisitor(grammarDKNVisitor):
         if name == "len":
             if len(args) != 1:
                 raise DKNRuntimeError("len(x) requiere exactamente un argumento.")
-            if not isinstance(args[0], list):
-                raise DKNRuntimeError("len(x) solo admite listas/matrices.")
+            if not isinstance(args[0], (list, dict)):
+                raise DKNRuntimeError("len(x) solo admite listas/matrices/diccionarios.")
             return len(args[0])
+
+        if name == "dict":
+            if len(args) != 0:
+                raise DKNRuntimeError("dict() no recibe argumentos (crea un diccionario vacío).")
+            return {}
+
+        if name in ("keys", "values"):
+            if len(args) != 1 or not isinstance(args[0], dict):
+                raise DKNRuntimeError(f"{name}(d) requiere un diccionario.")
+            seq = list(args[0].keys()) if name == "keys" else list(args[0].values())
+            for _ in seq:
+                self._bump_instruction()
+            return seq
+
+        if name == "has":
+            if len(args) != 2 or not isinstance(args[0], dict):
+                raise DKNRuntimeError("has(d, clave) requiere un diccionario y una clave.")
+            return self._dict_key(args[1]) in args[0]
+
+        if name == "del":
+            if len(args) != 2 or not isinstance(args[0], dict):
+                raise DKNRuntimeError("del(d, clave) requiere un diccionario y una clave.")
+            key = self._dict_key(args[1])
+            if key not in args[0]:
+                raise DKNRuntimeError(f"del: la clave '{key}' no existe en el diccionario.")
+            return args[0].pop(key)
+
+        if name == "redis_set":
+            if len(args) != 2:
+                raise DKNRuntimeError("redis_set(clave, valor) requiere dos argumentos.")
+            clave = self._require_str(args[0], "clave")
+            try:
+                persistDKN.store_set(clave, args[1])
+            except Exception as e:
+                raise DKNRuntimeError(f"redis_set: error de persistencia: {e}") from e
+            return None
+
+        if name == "redis_get":
+            if len(args) != 1:
+                raise DKNRuntimeError("redis_get(clave) requiere un argumento.")
+            clave = self._require_str(args[0], "clave")
+            try:
+                return persistDKN.store_get(clave)
+            except Exception as e:
+                raise DKNRuntimeError(f"redis_get: error de persistencia: {e}") from e
+
+        if name == "redis_del":
+            if len(args) != 1:
+                raise DKNRuntimeError("redis_del(clave) requiere un argumento.")
+            clave = self._require_str(args[0], "clave")
+            try:
+                return persistDKN.store_del(clave)
+            except Exception as e:
+                raise DKNRuntimeError(f"redis_del: error de persistencia: {e}") from e
+
+        if name == "redis_exists":
+            if len(args) != 1:
+                raise DKNRuntimeError("redis_exists(clave) requiere un argumento.")
+            clave = self._require_str(args[0], "clave")
+            try:
+                return persistDKN.store_exists(clave)
+            except Exception as e:
+                raise DKNRuntimeError(f"redis_exists: error de persistencia: {e}") from e
+
+        if name == "redis_keys":
+            if len(args) != 0:
+                raise DKNRuntimeError("redis_keys() no recibe argumentos.")
+            try:
+                return persistDKN.store_keys()
+            except Exception as e:
+                raise DKNRuntimeError(f"redis_keys: error de persistencia: {e}") from e
+
+        if name == "store_backend":
+            if len(args) != 0:
+                raise DKNRuntimeError("store_backend() no recibe argumentos.")
+            return persistDKN.backend_name()
 
         if name == "type":
             if len(args) != 1:
@@ -635,6 +833,92 @@ class EvalVisitor(grammarDKNVisitor):
             except ValueError as e:
                 raise DKNRuntimeError(str(e)) from e
 
+        # ---- Métricas de Machine Learning ----
+
+        if name == "mse":
+            if len(args) != 2:
+                raise DKNRuntimeError("mse(y_real, y_pred) requiere dos argumentos (listas).")
+            y_real = self._ml_vector(args[0], "mse", "y_real")
+            y_pred = self._ml_vector(args[1], "mse", "y_pred")
+            if len(y_real) != len(y_pred):
+                raise DKNRuntimeError("mse: y_real y y_pred deben tener la misma longitud.")
+            total = 0.0
+            for i in range(len(y_real)):
+                self._bump_instruction()
+                diff = y_real[i] - y_pred[i]
+                total += diff * diff
+            return total / len(y_real)
+
+        if name == "exactitud":
+            if len(args) != 2:
+                raise DKNRuntimeError("exactitud(y_real, y_pred) requiere dos argumentos (listas).")
+            y_real = self._ml_binary(args[0], "exactitud", "y_real")
+            y_pred = self._ml_binary(args[1], "exactitud", "y_pred")
+            if len(y_real) != len(y_pred):
+                raise DKNRuntimeError("exactitud: y_real y y_pred deben tener la misma longitud.")
+            aciertos = 0
+            for i in range(len(y_real)):
+                self._bump_instruction()
+                if y_real[i] == y_pred[i]:
+                    aciertos += 1
+            return aciertos / len(y_real)
+
+        if name == "matriz_confusion":
+            if len(args) != 2:
+                raise DKNRuntimeError("matriz_confusion(y_real, y_pred) requiere dos argumentos (listas).")
+            y_real = self._ml_binary(args[0], "matriz_confusion", "y_real")
+            y_pred = self._ml_binary(args[1], "matriz_confusion", "y_pred")
+            if len(y_real) != len(y_pred):
+                raise DKNRuntimeError("matriz_confusion: y_real y y_pred deben tener la misma longitud.")
+            tn = fp = fn = tp = 0
+            for i in range(len(y_real)):
+                self._bump_instruction()
+                real, pred = y_real[i], y_pred[i]
+                if real == 0 and pred == 0:
+                    tn += 1
+                elif real == 0 and pred == 1:
+                    fp += 1
+                elif real == 1 and pred == 0:
+                    fn += 1
+                else:
+                    tp += 1
+            c00, c01 = f"[{tn}]", f"[{fp}]"
+            c10, c11 = f"[{fn}]", f"[{tp}]"
+            h0, h1 = "Pred: 0", "Pred: 1"
+            w0 = max(len(h0), len(c00), len(c10))
+            w1 = max(len(h1), len(c01), len(c11))
+            sangria = " " * len("Real 0: ")
+            print("[Matriz de Confusion]")
+            print(f"{sangria}{h0.center(w0)}  {h1.center(w1)}")
+            print(f"Real 0: {c00.center(w0)}  {c01.center(w1)}")
+            print(f"Real 1: {c10.center(w0)}  {c11.center(w1)}")
+            return None
+
+        # ---- Gráficos en texto (Canvas ASCII) ----
+
+        if name == "graficar_dispersion":
+            if len(args) != 2:
+                raise DKNRuntimeError("graficar_dispersion(X, Y) requiere dos argumentos (listas).")
+            X = self._ml_vector(args[0], "graficar_dispersion", "X")
+            Y = self._ml_vector(args[1], "graficar_dispersion", "Y")
+            if len(X) != len(Y):
+                raise DKNRuntimeError("graficar_dispersion: X e Y deben tener la misma longitud.")
+            print(self._ascii_canvas(X, Y, None, title="[Grafico de Dispersion]"))
+            return None
+
+        if name == "graficar_linea":
+            if len(args) != 3:
+                raise DKNRuntimeError("graficar_linea(X, Y, W) requiere tres argumentos (listas).")
+            X = self._ml_vector(args[0], "graficar_linea", "X")
+            Y = self._ml_vector(args[1], "graficar_linea", "Y")
+            W = self._ml_vector(args[2], "graficar_linea", "W")
+            if len(X) != len(Y):
+                raise DKNRuntimeError("graficar_linea: X e Y deben tener la misma longitud.")
+            if len(W) < 2:
+                raise DKNRuntimeError("graficar_linea: W debe tener al menos 2 elementos (W[0]=bias, W[1]=peso).")
+            print(self._ascii_canvas(X, Y, W, title="[Grafico de Linea / Regresion]"))
+            return None
+
         if name not in self.functions:
             raise DKNRuntimeError(f"Error Semántico: La función '{name}' no está definida.")
 
@@ -757,6 +1041,31 @@ class EvalVisitor(grammarDKNVisitor):
         for e in ctx.expr():
             values.append(self.visit(e))
         return values
+
+    def _dict_key(self, raw):
+        """Valida y normaliza una clave de diccionario (string o número entero)."""
+        if isinstance(raw, bool):
+            raise DKNRuntimeError("Clave de diccionario inválida: no se admiten booleanos.")
+        if isinstance(raw, str):
+            return raw
+        if isinstance(raw, int):
+            return raw
+        if isinstance(raw, float):
+            # Permite claves numéricas pero normaliza enteros exactos.
+            return int(raw) if raw.is_integer() else raw
+        raise DKNRuntimeError(
+            "Clave de diccionario inválida: solo se admiten strings o números."
+        )
+
+    def visitDictLiteral(self, ctx):
+        """Construye un diccionario propio (tabla hash) {clave: valor, ...}."""
+        result = {}
+        for entry in ctx.dictEntry():
+            self._bump_instruction()
+            key = self._dict_key(self.visit(entry.expr(0)))
+            value = self.visit(entry.expr(1))
+            result[key] = value
+        return result
 
     def visitUnaryMinus(self, ctx):
         v = self._require_number(self.visit(ctx.expr()))
@@ -929,7 +1238,7 @@ class EvalVisitor(grammarDKNVisitor):
 
     # (visitPotencia ya está implementado arriba con validaciones)
 
-def run(code: str, *, heap_slots: int = 1024, instruction_limit: int = 1_000_000):
+def run(code: str, *, heap_slots: int | None = None, instruction_limit: int = 1_000_000):
     """Analiza y ejecuta código del DSL."""
     code_for_lexer = _normalize_return_keyword(code)
     input_stream = InputStream(code_for_lexer)

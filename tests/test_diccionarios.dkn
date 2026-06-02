@@ -1,0 +1,33 @@
+// --- DICCIONARIOS NATIVOS (tablas hash) ---
+print("1. Literal y acceso por clave:");
+persona = {"nombre": "Ada", "edad": 36, "activo": 1};
+print(persona);
+print(persona["nombre"]);
+print(persona["edad"]);
+
+print("2. Asignacion / actualizacion de claves:");
+persona["edad"] = 37;
+persona["lenguaje"] = "DKNexus";
+print(persona["edad"]);
+print(persona);
+
+print("3. Utilidades:");
+print(len(persona));
+print(keys(persona));
+print(values(persona));
+print(has(persona, "nombre"));
+print(has(persona, "telefono"));
+print(type(persona));
+
+print("4. del y diccionario vacio:");
+del(persona, "activo");
+print(persona);
+vacio = dict();
+print(len(vacio));
+
+print("5. Claves numericas y valores anidados:");
+notas = {1: "uno", 2: "dos"};
+print(notas[1]);
+config = {"capas": [16, 8, 1], "lr": 0.01};
+print(config["capas"]);
+print(config["lr"]);

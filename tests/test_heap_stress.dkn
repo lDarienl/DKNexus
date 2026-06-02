@@ -1,7 +1,9 @@
-print("--- TEST DE STRESS DE HEAP ---");
+print("--- TEST DE HEAP DINAMICO (DKNumpy + bloques contiguos en C) ---");
 
-// 1. Crear una matriz que casi llene los 1024 slots
-// Una matriz de 32x32 ocupa exactamente 1024 slots
+// El heap ya NO esta limitado rigidamente a 1024 slots: crece de forma
+// dinamica para soportar vectores y matrices grandes (Machine Learning).
+
+// 1. Construir una matriz grande de forma incremental (lista de filas).
 m_grande = [];
 for (i = 0; i < 32; i = i + 1) {
     fila = [];
@@ -10,10 +12,13 @@ for (i = 0; i < 32; i = i + 1) {
     }
     push(m_grande, fila);
 }
+print("Matriz 32x32 creada sin error (heap dinamico).");
 
-print("Matriz 32x32 creada (1024 slots).");
+// 2. Una matriz literal se aplana en un BLOQUE CONTIGUO reservado en C.
+//    En dump_memory() aparece su puntero (@bloque_C=0x...).
+M = [[1, 2, 3], [4, 5, 6]];
+P = [[1, 0], [0, 1], [1, 1]];
+print("Producto M * P (multiplicacion delegada a C):");
+print(M * P);
+
 dump_memory();
-
-// 2. Intentar agregar un solo dato más debe disparar DKNMemoryError
-print("Intentando exceder el Heap...");
-x = 1;

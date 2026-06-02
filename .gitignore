@@ -14,3 +14,12 @@ DeepLearning*
 # Opcional: regenerables con antlr4 (descomenta si no quieres versionarlos)
  *.tokens
  *.interp
+
+# Persistencia de DKNexus (fallback a disco) y artefactos de build
+.dknexus_store.json
+gen_tmp/
+tools/
+*.so
+*.dll
+*.dylib
+venvn/

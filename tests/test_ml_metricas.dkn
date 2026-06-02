@@ -1,0 +1,23 @@
+// --- PASO 1 ML: Metricas y graficos ASCII (sin librerias externas) ---
+
+print("1. MSE (Error Cuadratico Medio):");
+y_real = [3.0, -0.5, 2.0, 7.0];
+y_pred = [2.5, 0.0, 2.0, 8.0];
+print(mse(y_real, y_pred));
+
+print("2. Exactitud (clasificacion binaria):");
+clases_real = [1, 0, 1, 1, 0, 1];
+clases_pred = [1, 0, 0, 1, 0, 1];
+print(exactitud(clases_real, clases_pred));
+
+print("3. Matriz de confusion:");
+matriz_confusion(clases_real, clases_pred);
+
+print("4. Grafico de dispersion:");
+X = [1, 2, 3, 4, 5, 6, 7, 8];
+Y = [2, 3, 5, 4, 6, 7, 8, 9];
+graficar_dispersion(X, Y);
+
+print("5. Grafico de linea (regresion y = 1 + 1*x):");
+W = [1.0, 1.0];
+graficar_linea(X, Y, W);

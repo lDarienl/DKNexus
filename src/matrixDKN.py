@@ -1,11 +1,40 @@
 """
 Librería de matrices para DKNexus.
-Soporta matrices de dimensión dinámica n x m (sin dependencias externas).
+Soporta matrices de dimensión dinámica n x m.
+
+El computo pesado (multiplicacion, suma/resta, escalar) se DELEGA al nucleo
+numerico ``dknumpyDKN``, que aplana las matrices en memoria contigua y, cuando
+hay libreria nativa compilada, ejecuta las operaciones en C. Validacion de
+dominio y casos exactos (transpuesta, inversa) se mantienen aqui.
 """
+
+import dknumpyDKN as _dknp
 
 
 def _is_number(x):
     return isinstance(x, (int, float))
+
+
+def _all_integral_matrix(m):
+    """True si todos los elementos son enteros (no bool)."""
+    return all(isinstance(v, int) and not isinstance(v, bool) for row in m for v in row)
+
+
+def _intify(out, integral):
+    """
+    DKNumpy devuelve floats. Si la operacion fue puramente entera, se vuelve a
+    enteros cuando el resultado es exacto (preserva la semantica previa).
+    """
+    if not integral:
+        return out
+    res = []
+    for row in out:
+        new_row = []
+        for v in row:
+            fv = float(v)
+            new_row.append(int(fv) if fv.is_integer() else fv)
+        res.append(new_row)
+    return res
 
 
 def matrix_dimensions(m):
@@ -34,45 +63,49 @@ def is_matrix_2x2(m):
 
 
 def matrix_transpose(m):
-    """Transpuesta de una matriz n x m."""
+    """Transpuesta de una matriz n x m (sobre bloque contiguo de DKNumpy)."""
     dims = matrix_dimensions(m)
     if dims is None:
         raise ValueError("Error de Dominio: trans(m) requiere una matriz válida.")
-    rows, cols = dims
-    return [[m[i][j] for i in range(rows)] for j in range(cols)]
+    return _intify(_dknp.transpose_lists(m), _all_integral_matrix(m))
 
 
 def matrix_add(a, b):
-    """Suma elemento a elemento de matrices del mismo tamaño."""
+    """Suma elemento a elemento de matrices del mismo tamaño (delegada a C)."""
     da = matrix_dimensions(a)
     db = matrix_dimensions(b)
     if da is None or db is None or da != db:
         raise ValueError("Error de Dominio: suma/resta requiere matrices con la misma dimensión.")
-    rows, cols = da
-    return [[a[i][j] + b[i][j] for j in range(cols)] for i in range(rows)]
+    integral = _all_integral_matrix(a) and _all_integral_matrix(b)
+    return _intify(_dknp.add_lists(a, b), integral)
 
 
 def matrix_sub(a, b):
-    """Resta elemento a elemento de matrices del mismo tamaño."""
+    """Resta elemento a elemento de matrices del mismo tamaño (delegada a C)."""
     da = matrix_dimensions(a)
     db = matrix_dimensions(b)
     if da is None or db is None or da != db:
         raise ValueError("Error de Dominio: suma/resta requiere matrices con la misma dimensión.")
-    rows, cols = da
-    return [[a[i][j] - b[i][j] for j in range(cols)] for i in range(rows)]
+    integral = _all_integral_matrix(a) and _all_integral_matrix(b)
+    return _intify(_dknp.sub_lists(a, b), integral)
 
 
 def matrix_scalar_mul(m, k):
-    """Multiplicación de una matriz n x m por un escalar."""
+    """Multiplicación de una matriz n x m por un escalar (delegada a C)."""
     dims = matrix_dimensions(m)
     if dims is None or not _is_number(k):
         raise ValueError("Error de Dominio: multiplicación escalar requiere matriz válida y escalar.")
-    rows, cols = dims
-    return [[m[i][j] * k for j in range(cols)] for i in range(rows)]
+    integral = _all_integral_matrix(m) and isinstance(k, int) and not isinstance(k, bool)
+    return _intify(_dknp.scalar_mul_lists(m, k), integral)
 
 
 def matrix_mul(a, b):
-    """Producto matricial: (n x m) * (m x p) = (n x p)."""
+    """
+    Producto matricial: (n x m) * (m x p) = (n x p).
+
+    El computo se delega a ``dknumpyDKN`` (memoria contigua + C nativo cuando
+    esta disponible); aqui solo validamos dominio y preservamos enteros.
+    """
     da = matrix_dimensions(a)
     db = matrix_dimensions(b)
     if da is None or db is None:
@@ -81,16 +114,8 @@ def matrix_mul(a, b):
     rb, cb = db
     if ca != rb:
         raise ValueError("Error de Dominio: dimensiones incompatibles para multiplicación de matrices.")
-    out = []
-    for i in range(ra):
-        row = []
-        for j in range(cb):
-            s = 0
-            for k in range(ca):
-                s += a[i][k] * b[k][j]
-            row.append(s)
-        out.append(row)
-    return out
+    integral = _all_integral_matrix(a) and _all_integral_matrix(b)
+    return _intify(_dknp.matmul_lists(a, b), integral)
 
 
 def matrix_inv(m):

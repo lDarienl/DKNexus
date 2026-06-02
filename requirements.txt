@@ -1,2 +1,6 @@
 antlr4-python3-runtime==4.13.2
 
+# Opcional: persistencia ultra-liviana en RAM. Si no esta instalado (o no hay
+# servidor escuchando), DKNexus usa automaticamente un fallback a disco (JSON).
+redis>=5.0
+
