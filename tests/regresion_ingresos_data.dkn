@@ -95,7 +95,9 @@ print("");
 print("--- Entrenando regresion lineal (gradiente descendente) ---");
 // W[0]=bias, W[1]=edad, W[2]=sexo, W[3]=anios_esc
 W = [0.0, 0.0, 0.0, 0.0];
-lr = 0.15;
+// lr=1.0 converge casi al optimo teorico (RMSE ~5760) en pocas epocas.
+// Con lr menor (p.ej. 0.15) haria falta 10x mas epocas para lo mismo.
+lr = 1.0;
 epochs = 40;
 
 for (epoca = 0; epoca < epochs; epoca = epoca + 1) {
