@@ -10,8 +10,8 @@ function factorial(n) {
 }
 
 // Variable global
-resultado = factorial(5);
-print("El factorial de 5 es:");
+resultado = factorial(500);
+print("El factorial de 500 es:");
 print(resultado);
 
 print("--- Estado de la memoria ---");
