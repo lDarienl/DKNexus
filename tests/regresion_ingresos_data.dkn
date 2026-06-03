@@ -1,0 +1,213 @@
+// ====================================================================
+//  REGRESION LINEAL: predecir ingreso_mensual
+//  Datos: tests/data.csv (~10 280 filas)
+//  Variables: edad, sexo (codificado), anios_esc  ->  ingreso_mensual
+//  Particion: 80% entrenamiento / 20% prueba
+//
+//  Ejecutar desde src/:
+//    python interpreterDKN.py
+//    Ruta: ../tests/regresion_ingresos_data.dkn
+//
+//  Nota: entrena con las 8224 filas (80%); tarda unos minutos.
+//  usar_entrada = 0 omite la consulta interactiva al final.
+// ====================================================================
+
+usar_entrada = 1;
+
+print("============================================================");
+print(" REGRESION LINEAL - INGRESO MENSUAL (data.csv)");
+print(" Variables: edad, sexo, anios_esc");
+print(" Objetivo: ingreso_mensual | Train 80% / Test 20%");
+print("============================================================");
+
+tabla = read_csv("../tests/data.csv");
+n = tabla["n_rows"];
+print("Total de registros cargados:");
+print(n);
+
+edad_t = csv_col_num(tabla, 1);
+sexo_t = csv_col(tabla, 4);
+anios_t = csv_col_num(tabla, 5);
+ingreso_t = csv_col_num(tabla, 3);
+
+// Codificar sexo: 0.0 = Hombre, 1.0 = Mujer
+sexo_num = [];
+for (i = 0; i < n; i = i + 1) {
+    if (sexo_t[i] == "Hombre") {
+        push(sexo_num, 0.0);
+    }
+    if (sexo_t[i] == "Mujer") {
+        push(sexo_num, 1.0);
+    }
+}
+
+// Particion 80% train / 20% test (primeros 80% = entrenamiento)
+tr_edad = [];
+tr_sexo = [];
+tr_anios = [];
+tr_ing = [];
+te_edad = [];
+te_sexo = [];
+te_anios = [];
+te_ing = [];
+
+for (i = 0; i < n; i = i + 1) {
+    if (i < n * 0.8) {
+        push(tr_edad, edad_t[i]);
+        push(tr_sexo, sexo_num[i]);
+        push(tr_anios, anios_t[i]);
+        push(tr_ing, ingreso_t[i]);
+    }
+    if (i >= n * 0.8) {
+        push(te_edad, edad_t[i]);
+        push(te_sexo, sexo_num[i]);
+        push(te_anios, anios_t[i]);
+        push(te_ing, ingreso_t[i]);
+    }
+}
+
+n_train = len(tr_edad);
+n_test = len(te_edad);
+print("Registros entrenamiento (80%):");
+print(n_train);
+print("Registros prueba (20%):");
+print(n_test);
+
+// Min-max del TRAIN (para normalizar train y test con la misma escala)
+edad_min = min(tr_edad);
+edad_max = max(tr_edad);
+sexo_min = min(tr_sexo);
+sexo_max = max(tr_sexo);
+anios_min = min(tr_anios);
+anios_max = max(tr_anios);
+ing_min = min(tr_ing);
+ing_max = max(tr_ing);
+
+edad_span = edad_max - edad_min;
+sexo_span = sexo_max - sexo_min;
+anios_span = anios_max - anios_min;
+ing_span = ing_max - ing_min;
+
+if (edad_span == 0) { edad_span = 1.0; }
+if (sexo_span == 0) { sexo_span = 1.0; }
+if (anios_span == 0) { anios_span = 1.0; }
+if (ing_span == 0) { ing_span = 1.0; }
+
+// Normalizar conjunto de entrenamiento
+tr_edad_n = [];
+tr_sexo_n = [];
+tr_anios_n = [];
+tr_ing_n = [];
+for (i = 0; i < n_train; i = i + 1) {
+    push(tr_edad_n, (tr_edad[i] - edad_min) / edad_span);
+    push(tr_sexo_n, (tr_sexo[i] - sexo_min) / sexo_span);
+    push(tr_anios_n, (tr_anios[i] - anios_min) / anios_span);
+    push(tr_ing_n, (tr_ing[i] - ing_min) / ing_span);
+}
+
+print("");
+print("--- Entrenando regresion lineal (gradiente descendente) ---");
+// W[0]=bias, W[1]=edad, W[2]=sexo, W[3]=anios_esc
+W = [0.0, 0.0, 0.0, 0.0];
+lr = 0.15;
+epochs = 40;
+
+for (epoca = 0; epoca < epochs; epoca = epoca + 1) {
+    grad = [0.0, 0.0, 0.0, 0.0];
+    for (i = 0; i < n_train; i = i + 1) {
+        pred = W[0] + W[1] * tr_edad_n[i] + W[2] * tr_sexo_n[i] + W[3] * tr_anios_n[i];
+        err = pred - tr_ing_n[i];
+        grad[0] = grad[0] + err;
+        grad[1] = grad[1] + err * tr_edad_n[i];
+        grad[2] = grad[2] + err * tr_sexo_n[i];
+        grad[3] = grad[3] + err * tr_anios_n[i];
+    }
+    // Promedio del gradiente (batch GD estable con ~8k muestras)
+    grad[0] = grad[0] / n_train;
+    grad[1] = grad[1] / n_train;
+    grad[2] = grad[2] / n_train;
+    grad[3] = grad[3] / n_train;
+    W = update_weights(W, grad, lr);
+}
+
+print("Pesos aprendidos [bias, edad, sexo, anios_esc] (escala normalizada):");
+print(W);
+
+print("");
+print("--- Evaluacion en conjunto de PRUEBA (20%) ---");
+te_pred_n = [];
+te_pred_real = [];
+for (i = 0; i < n_test; i = i + 1) {
+    e_n = (te_edad[i] - edad_min) / edad_span;
+    s_n = (te_sexo[i] - sexo_min) / sexo_span;
+    a_n = (te_anios[i] - anios_min) / anios_span;
+    p_n = W[0] + W[1] * e_n + W[2] * s_n + W[3] * a_n;
+    push(te_pred_n, p_n);
+    push(te_pred_real, p_n * ing_span + ing_min);
+}
+
+te_ing_n = [];
+for (i = 0; i < n_test; i = i + 1) {
+    push(te_ing_n, (te_ing[i] - ing_min) / ing_span);
+}
+print("MSE normalizado (test):");
+print(mse(te_ing_n, te_pred_n));
+print("MSE en pesos reales (test):");
+print(mse(te_ing, te_pred_real));
+
+print("Ingreso real promedio (test):");
+print(mean(te_ing));
+print("Ingreso predicho promedio (test):");
+print(mean(te_pred_real));
+
+print("");
+print("--- Grafico: edad vs ingreso (muestra 120 del test) ---");
+g_n = 120;
+if (n_test < g_n) { g_n = n_test; }
+gx = [];
+gy = [];
+for (i = 0; i < g_n; i = i + 1) {
+    push(gx, te_edad[i]);
+    push(gy, te_ing[i]);
+}
+graficar_dispersion(gx, gy);
+
+print("");
+print("============================================================");
+print(" PREDICCIONES DE EJEMPLO (edite variables o use input_*)");
+print(" Sexo: 0 = Hombre, 1 = Mujer");
+print("============================================================");
+
+function predecir_ingreso(edad, sexo_cod, anios) {
+    e_n = (edad - edad_min) / edad_span;
+    s_n = (sexo_cod - sexo_min) / sexo_span;
+    a_n = (anios - anios_min) / anios_span;
+    p_n = W[0] + W[1] * e_n + W[2] * s_n + W[3] * a_n;
+    retornar p_n * ing_span + ing_min;
+}
+
+// --- Caso 1: Hombre de 40 anos, 12 anos de escolaridad ---
+print("Caso fijo: Hombre, 40 anos, 12 anios escolaridad:");
+print(predecir_ingreso(40.0, 0.0, 12.0));
+
+// --- Caso 2: Mujer de 35 anos, 16 anos de escolaridad ---
+print("Caso fijo: Mujer, 35 anos, 16 anios escolaridad:");
+print(predecir_ingreso(35.0, 1.0, 16.0));
+
+// --- Caso 3: Hombre de 25 anos, 15 anos de escolaridad ---
+print("Caso fijo: Hombre, 25 anos, 15 anios escolaridad:");
+print(predecir_ingreso(25.0, 0.0, 15.0));
+
+if (usar_entrada == 1) {
+    print("");
+    print("--- Consulta interactiva ---");
+    print("Sexo: 0 = Hombre, 1 = Mujer");
+    edad_in = input_num("Edad (anos): ");
+    sexo_in = input_num("Sexo codigo (0=Hombre, 1=Mujer): ");
+    anios_in = input_num("Anios de escolaridad: ");
+    print("Ingreso mensual estimado para su perfil:");
+    print(predecir_ingreso(edad_in, sexo_in, anios_in));
+}
+
+print("");
+print("=== Fin regresion ingresos data.csv ===");

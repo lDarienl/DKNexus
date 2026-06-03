@@ -822,6 +822,30 @@ class EvalVisitor(grammarDKNVisitor):
             print(args[0])
             return None
 
+        if name == "input_prompt":
+            if len(args) != 1:
+                raise DKNRuntimeError("input_prompt(mensaje) requiere un argumento (string).")
+            msg = self._require_str(args[0], "mensaje")
+            try:
+                return input(msg)
+            except EOFError:
+                return ""
+
+        if name == "input_num":
+            if len(args) != 1:
+                raise DKNRuntimeError("input_num(mensaje) requiere un argumento (string).")
+            msg = self._require_str(args[0], "mensaje")
+            try:
+                raw = input(msg).strip()
+            except EOFError:
+                raise DKNRuntimeError("input_num: entrada cancelada (EOF).") from None
+            if raw == "":
+                raise DKNRuntimeError("input_num: no se ingresó ningún valor.")
+            try:
+                return float(raw)
+            except ValueError as e:
+                raise DKNRuntimeError(f"input_num: valor numérico inválido: {raw!r}") from e
+
         if name == "read":
             if len(args) != 1:
                 raise DKNRuntimeError("read(ruta) requiere exactamente un argumento (string).")
