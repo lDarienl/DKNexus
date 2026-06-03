@@ -854,6 +854,41 @@ class EvalVisitor(grammarDKNVisitor):
                 raise DKNRuntimeError(f"load_csv: {e}") from e
             return mat
 
+        if name == "read_csv":
+            if len(args) != 1:
+                raise DKNRuntimeError("read_csv(ruta) requiere exactamente un argumento (string).")
+            path = self._require_str(args[0], "ruta")
+            try:
+                return dataDKN.read_csv_table(path, self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(f"read_csv: {e}") from e
+
+        if name == "csv_col":
+            if len(args) != 2:
+                raise DKNRuntimeError("csv_col(tabla, indice) requiere dos argumentos.")
+            if not isinstance(args[0], dict):
+                raise DKNRuntimeError("csv_col: el primer argumento debe ser una tabla de read_csv.")
+            j = self._coerce_int_index(args[1], "csv_col")
+            try:
+                col = dataDKN.csv_column(args[0], j)
+            except ValueError as e:
+                raise DKNRuntimeError(f"csv_col: {e}") from e
+            for _ in col:
+                self._bump_instruction()
+            return col
+
+        if name == "csv_col_num":
+            if len(args) != 2:
+                raise DKNRuntimeError("csv_col_num(tabla, indice) requiere dos argumentos.")
+            if not isinstance(args[0], dict):
+                raise DKNRuntimeError("csv_col_num: el primer argumento debe ser una tabla de read_csv.")
+            j = self._coerce_int_index(args[1], "csv_col_num")
+            try:
+                col = dataDKN.csv_column_numeric(args[0], j, self._bump_instruction)
+            except ValueError as e:
+                raise DKNRuntimeError(f"csv_col_num: {e}") from e
+            return col
+
         if name == "get_col":
             if len(args) != 2:
                 raise DKNRuntimeError("get_col(matriz, indice) requiere exactamente dos argumentos.")

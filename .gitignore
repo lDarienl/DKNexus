@@ -23,3 +23,7 @@ tools/
 *.dll
 *.dylib
 venvn/
+
+# Documentos de estudio/sustentación (no se versionan)
+docs/GUIA_PROYECTO.md
+docs/dknexus_ieee.tex

@@ -326,7 +326,10 @@ Disponibles como expresiones del lenguaje:
 |---|---|
 | `sum(x)` `mean(x)` `min(x)` `max(x)` | reducciones sobre lista o matriz |
 | `normalize(v)` | normalización min-max a `[0, 1]` |
-| `load_csv(ruta)` | carga un CSV numérico como matriz |
+| `load_csv(ruta)` | carga un CSV **solo numérico** (sin encabezado ni texto) como matriz |
+| `read_csv(ruta)` | CSV real con **comillas, encabezado y columnas mixtas** → dict `{header, rows, n_rows, n_cols}` |
+| `csv_col(tabla, j)` | columna `j` (texto o número) de una tabla `read_csv` |
+| `csv_col_num(tabla, j)` | columna `j` solo valores numéricos (para ML/estadística) |
 | `get_col(m, j)` / `set_col(m, j, v)` | columnas de una matriz |
 
 ### 6.3 Álgebra de matrices (vía `matrixDKN` → C)
@@ -575,6 +578,7 @@ DKNexus/
 |---|---|
 | **ML / DL (básico)** | `regresion_lineal.dkn`, `clasificacion_binaria.dkn`, `mlp_xor.dkn`, `clustering_knn.dkn`, `test_ml_metricas.dkn` |
 | **ML / DL (integral + estrés + errores)** | `test_dl_completo.dkn` (pipeline completo con gráficos), `test_dl_estres.dkn` (datasets grandes, MLP de 8 ocultas, 3 clusters), `test_dl_errores.dkn` (catálogo de errores forzados) |
+| **Datos reales (CSV)** | `test_data_csv.dkn` + `data.csv` (~10 280 filas, encabezado y texto) |
 | Control de flujo / lógica | `flujo_y_logica.dkn`, `test_logica.dkn`, `print_1_a_100.dkn`, `print_impares_1_a_100.dkn` |
 | Funciones / recursividad | `euclides.dkn`, `euclides_iterativo.dkn`, `euclides_recursivo.dkn`, `recursividad_scoop.dkn`, `burbuja.dkn` |
 | Matrices / estructuras | `test_matrices.dkn`, `matrices_y_estructuras.dkn`, `test_matriz_singular.dkn`, `test_diccionarios.dkn`, `test_pilas_colas.dkn` |
