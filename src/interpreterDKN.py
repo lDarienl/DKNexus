@@ -17,7 +17,8 @@ from antlr4.error.ErrorListener import ErrorListener
 from grammarDKNLexer import grammarDKNLexer
 from grammarDKNParser import grammarDKNParser
 from grammarDKNVisitor import grammarDKNVisitor
-
+import sys
+sys.setrecursionlimit(5000)  # Aumenta el límite de Python de 1000 a 5000
 
 class DKNRuntimeError(Exception):
     pass
