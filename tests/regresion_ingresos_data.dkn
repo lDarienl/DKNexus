@@ -8,7 +8,8 @@
 //    python interpreterDKN.py
 //    Ruta: ../tests/regresion_ingresos_data.dkn
 //
-//  Nota: entrena con las 8224 filas (80%); tarda unos minutos.
+//  Nota: entrena con las 8224 filas (80%); tarda 2-4 minutos.
+//  El interprete usa limite alto al ejecutar archivos .dkn (ver interpreterDKN.py).
 //  usar_entrada = 0 omite la consulta interactiva al final.
 // ====================================================================
 
@@ -110,7 +111,7 @@ print("--- Entrenando regresion lineal (gradiente descendente) ---");
 // W[0]=bias, W[1]=edad, W[2]=sexo, W[3]=anios_esc
 W = [0.0, 0.0, 0.0, 0.0];
 lr = 0.15;
-epochs = 40;
+epochs = 35;
 
 for (epoca = 0; epoca < epochs; epoca = epoca + 1) {
     grad = [0.0, 0.0, 0.0, 0.0];

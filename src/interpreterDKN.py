@@ -1627,7 +1627,12 @@ class EvalVisitor(grammarDKNVisitor):
 
     # (visitPotencia ya está implementado arriba con validaciones)
 
-def run(code: str, *, heap_slots: int | None = None, instruction_limit: int = 1_000_000):
+# REPL: límite moderado. Archivos .dkn (p. ej. ML con miles de filas): límite alto.
+INSTRUCTION_LIMIT_REPL = 1_000_000
+INSTRUCTION_LIMIT_FILE = 25_000_000
+
+
+def run(code: str, *, heap_slots: int | None = None, instruction_limit: int = INSTRUCTION_LIMIT_REPL):
     """Analiza y ejecuta código del DSL."""
     code_for_lexer = _normalize_return_keyword(code)
     input_stream = InputStream(code_for_lexer)
@@ -1772,7 +1777,8 @@ def main():
                 with open(path, 'r', encoding='utf-8') as f:
                     codigo = f.read()
                 print(f"\n--- Ejecutando: {path} ---")
-                ret = run(codigo)
+                print("(Scripts grandes de ML pueden tardar varios minutos.)")
+                ret = run(codigo, instruction_limit=INSTRUCTION_LIMIT_FILE)
                 if ret is not None:
                     print(ret)
                 print("--- Fin de ejecución ---\n")
