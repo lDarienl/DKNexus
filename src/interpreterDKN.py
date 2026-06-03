@@ -836,16 +836,21 @@ class EvalVisitor(grammarDKNVisitor):
             if len(args) != 1:
                 raise DKNRuntimeError("input_num(mensaje) requiere un argumento (string).")
             msg = self._require_str(args[0], "mensaje")
-            try:
-                raw = input(msg).strip()
-            except EOFError:
-                raise DKNRuntimeError("input_num: entrada cancelada (EOF).") from None
-            if raw == "":
-                raise DKNRuntimeError("input_num: no se ingresó ningún valor.")
-            try:
-                return float(raw)
-            except ValueError as e:
-                raise DKNRuntimeError(f"input_num: valor numérico inválido: {raw!r}") from e
+            # Vuelve a preguntar ante entradas vacías o no numéricas (no rompe).
+            while True:
+                self._bump_instruction()
+                try:
+                    raw = input(msg).strip()
+                except EOFError:
+                    raise DKNRuntimeError("input_num: entrada cancelada (EOF).") from None
+                if raw == "":
+                    print("Por favor ingrese un número.")
+                    continue
+                try:
+                    return float(raw)
+                except ValueError:
+                    print(f"Valor inválido: '{raw}'. Ingrese un número.")
+                    continue
 
         if name == "read":
             if len(args) != 1:

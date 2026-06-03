@@ -228,13 +228,39 @@ if (usar_entrada == 1) {
     while (continuar == 1) {
         print("");
         print("--- Nuevo perfil (Sexo: 0 = Hombre, 1 = Mujer) ---");
+
+        // Edad: valida que este entre 0 y 120
         edad_in = input_num("Edad (anos): ");
+        while (edad_in < 0 or edad_in > 120) {
+            print("Edad invalida. Ingrese un valor entre 0 y 120.");
+            edad_in = input_num("Edad (anos): ");
+        }
+
+        // Sexo: solo acepta 0 (Hombre) o 1 (Mujer)
         sexo_in = input_num("Sexo codigo (0=Hombre, 1=Mujer): ");
+        while (sexo_in != 0 and sexo_in != 1) {
+            print("Sexo invalido. Use solo 0 (Hombre) o 1 (Mujer).");
+            sexo_in = input_num("Sexo codigo (0=Hombre, 1=Mujer): ");
+        }
+
+        // Escolaridad: entre 0 y la edad (no se puede estudiar mas anios que la edad)
         anios_in = input_num("Anios de escolaridad: ");
+        while (anios_in < 0 or anios_in > edad_in) {
+            print("Escolaridad invalida. Debe estar entre 0 y la edad.");
+            anios_in = input_num("Anios de escolaridad: ");
+        }
+
         aviso_rango(edad_in, anios_in);
         print("Ingreso mensual estimado para su perfil:");
         print(predecir_ingreso(edad_in, sexo_in, anios_in));
-        continuar = input_num("Otra prediccion? (1 = Si, 0 = No): ");
+
+        // Pregunta de continuacion como TEXTO (asi 'n', 'no' o '0' salen sin error)
+        resp = input_prompt("Otra prediccion? (1/si = Si, otra cosa = No): ");
+        continuar = 0;
+        if (resp == "1") { continuar = 1; }
+        if (resp == "si") { continuar = 1; }
+        if (resp == "Si") { continuar = 1; }
+        if (resp == "s") { continuar = 1; }
     }
     print("Fin de las consultas.");
 }
